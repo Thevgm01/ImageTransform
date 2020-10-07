@@ -3,20 +3,22 @@ final boolean FULLSCREEN = false;
 final int //WIDTH = 1920, HEIGHT = 1080;
           WIDTH = 1600, HEIGHT = 900;
           //WIDTH = 800, HEIGHT = 450;
+final int HALF_WIDTH = WIDTH / 2, HALF_HEIGHT = HEIGHT / 2;
 final int TOTAL_SIZE = WIDTH * HEIGHT;
-final int NUM_TO_CHECK = 1500;
+final int NUM_TO_CHECK = 2000;
 final int DESIRED_FRAMERATE = 60;
 final int NUM_THREADS = 6;//The number of threads, up to 8
-final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 3;//4;
+final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 4;//4;
 final int TOTAL_DELAY_FRAMES = DESIRED_FRAMERATE / 2;
 final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 2;//3;
 final String IMAGES_DIR =
-"";
+//"";
 //"C:/Users/thevg/Desktop/Processing/Projects/Images/Spaceships";
+"C:/Users/thevg/Desktop/Processing/Projects/Images/Landscapes";
 //"C:/Users/thevg/Pictures/Makoto Niijima Archive";
 final String IMAGES_LIST_FILE = 
-//"";
-"C:/Users/thevg/Pictures/Wallpapers/list.txt";
+"";
+//"C:/Users/thevg/Pictures/Wallpapers/list.txt";
 int imagesListFileSize = 0;
 
 // CONSTANTS //
@@ -27,9 +29,9 @@ final boolean preAnimate = true; //Dramatically slows loading speed, but require
 final boolean cycle = true;
 
 // ANALYSIS //
-final boolean showCalculatedPixels = true;
+final boolean showCalculatedPixels = false;
 final boolean showAnalysisText = false;
-final boolean showProgressBar = true;
+final boolean showProgress = true;
 final boolean showNextImage = false;
 
 // IMAGES IN MEMORY //
@@ -146,7 +148,7 @@ void resizeImage(PImage img, int w, int h) {
 
 PImage imageOnBlack(PImage img) {
   background(0);
-  image(img, width/2 - img.width/2, height/2 - img.height/2);
+  image(img, HALF_WIDTH - img.width/2, HALF_HEIGHT - img.height/2);
   return get();
 }
 
@@ -268,7 +270,7 @@ void draw() {
       numAnimated = 0;
       resetAll();
   }
-  if(showProgressBar) showProgressBar(numAnalyzed, numAnimated);
+  if(showProgress) showProgress(numAnalyzed, numAnimated);
 }
 
 void analyzeStartImage0() { analyzeStartImage(0); }
@@ -306,7 +308,7 @@ void findBestFit(int index) {
     if(curFit < bestFitValue) {
       bestFitIndex = startIndexesRandomized[i];
       bestFitValue = curFit;
-      //if(curFit == 0) break;
+      if(curFit == 0) break;
     }
   }
   newOrder[index] = bestFitIndex;
@@ -335,8 +337,7 @@ void resetAll() {
   }
   animationInitializer = 0;
   
-  curAnimation = (int)random(NUM_ANIMATIONS);
-  //curAnimation = ANIMATION_SPIRAL;
+  randomizeAnimator();
   
   curFrame = 0;
   curState = 0;
@@ -395,20 +396,25 @@ void showAnalysisText(int cur, int max, String label) {
   text(values, 70, 10);
 }
 
-void moveProgressBar(float amount) {
-  prograssBarSlide -= amount;
-  if(prograssBarSlide < 0) prograssBarSlide = 0;
-  else if(prograssBarSlide > PI) prograssBarSlide = PI;
-}
-
-void showProgressBar(int numAnalyzed, int numAnimated) {
+void showProgress(int numAnalyzed, int numAnimated) {
   float frac = (float)numAnalyzed / TOTAL_SIZE;
   if(preAnimate && curState <= 3) frac = (
     (float)numAnalyzed / TOTAL_SIZE +
     (float)numAnimated / TOTAL_SIZE)/2f;
   else if(curState > 3)
     frac = 0f;
-        
+    
+  //showProgressBar(frac);
+  if(curState < 3) showProgressBorder(frac);
+}
+
+void moveProgressBar(float amount) {
+  prograssBarSlide -= amount;
+  if(prograssBarSlide < 0) prograssBarSlide = 0;
+  else if(prograssBarSlide > PI) prograssBarSlide = PI;
+}
+
+void showProgressBar(float frac) {
   final int barHeight = height/50;
   final int sideDistance = width/60;
   final int borderThickness = 2;
@@ -426,6 +432,23 @@ void showProgressBar(int numAnalyzed, int numAnimated) {
     fill(255);
     noStroke();
     rect(x, y - animationY, w*frac, h);
+  }
+  
+  showProgressBorder(frac);
+}
+
+void showProgressBorder(float frac) {
+  stroke(255);
+  strokeWeight(3);
+  
+  line(-frac * 3f/2f * width + HALF_WIDTH, 0, frac * 3f/2f * width + HALF_WIDTH, 0);
+  if(frac >= 0.33f) {
+    line(0, 0, 0, (frac - 0.33f) * 3f * height);
+    line(width - 1, 0, width - 1, (frac - 0.33f) * 3f * height);
+  }
+  if(frac >= 0.67f) {
+    line(0, height - 1, (frac - 0.67f) * 3.1f/2f * width, height - 1);
+    line(-(frac - 0.67f) * 3.1f/2 * width + width, height - 1, width, height - 1);
   }
 }
 
