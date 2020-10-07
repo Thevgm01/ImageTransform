@@ -25,17 +25,6 @@ final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 // CONFIGURATION //
 final boolean preAnimate = true; //Dramatically slows loading speed, but required for maintaining high framerate at large resolutions
 final boolean cycle = true;
-final int ANIMATION_LINEAR = 0;
-final int ANIMATION_POLY = 1;
-final int ANIMATION_POLY_SWAPPED = 2;
-final int ANIMATION_CIRCLE = 3;//{centerX, centerY, startAngle, totalAngle, radius}
-final int ANIMATION_CIRCLE_BACKWARDS = 4;
-final int NUM_ANIMATIONS = 5;
-int curAnimation = 0;
-float easeValue = 3f;
-float polynomialPower = 2f;
-float[][] easing;
-float[][] animationData;
 
 // ANALYSIS //
 final boolean showCalculatedPixels = true;
@@ -98,17 +87,17 @@ void setup() {
   startColorsRandomized = new color[TOTAL_SIZE];
   startIndexesRandomized = new int[TOTAL_SIZE];
   newOrder = new int[TOTAL_SIZE];
-  animationData = new float[5][TOTAL_SIZE];
+  animationData = new float[TOTAL_SIZE][5];
 
   analyzeIndexes = new int[NUM_THREADS];
   animationIndexes = new int[NUM_THREADS];
   if(preAnimate) animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
   
-  easing = new float[3][TOTAL_ANIMATION_FRAMES];
+  easing = new float[TOTAL_ANIMATION_FRAMES][3];
   for(int i = 0; i < TOTAL_ANIMATION_FRAMES; i++) {
-    easing[0][i] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1));
-    easing[1][i] = pow(easing[0][i], polynomialPower);
-    easing[2][i] = pow(easing[0][i], 1f/polynomialPower);
+    easing[i][DEFAULT] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1));
+    easing[i][POLY] = pow(easing[i][DEFAULT], polynomialPower);
+    easing[i][POLY_INVERSE] = pow(easing[i][DEFAULT], 1f/polynomialPower);
   }
   
   resetAll();
@@ -215,9 +204,9 @@ void draw() {
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
         float frac = (float)curFrame / TOTAL_ANIMATION_FRAMES;
         fadeToBlack(startImg, frac);
-        loadPixels();
-        createAnimationFrame(pixels, curFrame);
-        updatePixels();
+        //loadPixels();
+        //createAnimationFrame(pixels, curFrame);
+        //updatePixels();
         curFrame++; 
         if(record) saveFrame(recordingFilename);
         moveProgressBar(-progressBarSlideSpeed);
@@ -328,73 +317,6 @@ void findBestFit(int index) {
   newOrder[index] = bestFitIndex;
 }
 
-void createAnimationFrames0() { createAnimationFrames(0); }
-void createAnimationFrames1() { createAnimationFrames(1); }
-void createAnimationFrames2() { createAnimationFrames(2); }
-void createAnimationFrames3() { createAnimationFrames(3); }
-void createAnimationFrames4() { createAnimationFrames(4); }
-void createAnimationFrames5() { createAnimationFrames(5); }
-void createAnimationFrames6() { createAnimationFrames(6); }
-void createAnimationFrames7() { createAnimationFrames(7); }
-
-void createAnimationFrames(int offset) {
-  if(curAnimation == ANIMATION_CIRCLE || curAnimation == ANIMATION_CIRCLE_BACKWARDS) {
-    for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {
-      int j = newOrder[i];
-      int[] coords = getStartAndEnd(i, j);
-      animationData[0][i] = (coords[0] + coords[2]) / 2f;
-      animationData[1][i] = (coords[1] + coords[3]) / 2f;
-      animationData[2][i] = atan2(coords[1] - animationData[1][i], coords[0] - animationData[0][i]);
-      animationData[3][i] = curAnimation == ANIMATION_CIRCLE_BACKWARDS ? -PI : PI;
-      animationData[4][i] = dist(coords[0], coords[1], coords[2], coords[3]) / 2f;
-    }
-  }
-  
-  for(int i = offset; i < TOTAL_ANIMATION_FRAMES; i += NUM_THREADS) {
-    createAnimationFrame(animationFrames[i].pixels, i);
-    animationIndexes[offset]++;
-  }
-}
-
-void createAnimationFrame(color[] localPixels, int index) {
-  for(int i = 0; i < TOTAL_SIZE; i++) {
-    int j = newOrder[i];
-    int[] coords = getStartAndEnd(i, j);
-    float newX = 0,
-          newY = 0;
-    switch(curAnimation) { //<>//
-      case ANIMATION_LINEAR:
-        newX = coords[0] + (coords[2] - coords[0]) * easing[0][index];
-        newY = coords[1] + (coords[3] - coords[1]) * easing[0][index];
-        break;
-      case ANIMATION_POLY:
-        newX = coords[0] + (coords[2] - coords[0]) * easing[1][index];
-        newY = coords[1] + (coords[3] - coords[1]) * easing[2][index];
-        break;
-      case ANIMATION_POLY_SWAPPED:
-        newX = coords[0] + (coords[2] - coords[0]) * easing[2][index];
-        newY = coords[1] + (coords[3] - coords[1]) * easing[1][index];
-        break;
-      case ANIMATION_CIRCLE:
-      case ANIMATION_CIRCLE_BACKWARDS:
-        float rotateAmount = animationData[2][i] + animationData[3][i] * easing[0][index];
-        newX = animationData[0][i] + cos(rotateAmount) * animationData[4][i];
-        newY = animationData[1][i] + sin(rotateAmount) * animationData[4][i];
-        if(newX < 0 || newX >= width - 1 || newY < 0 || newY >= height - 1) continue;
-        break;
-    }
-    localPixels[round(newY) * width + round(newX)] = startImg.pixels[j];
-  }
-}
-
-int[] getStartAndEnd(int i, int j) {
-  return new int[] {
-    j % width,
-    j / width,
-    i % width,
-    i / width };
-}
-
 void fadeToBlack(PImage back, float frac) {
   background(back);
   noStroke();
@@ -418,8 +340,8 @@ void resetAll() {
   }
   animationInitializer = 0;
   
-  curAnimation = (int)random(NUM_ANIMATIONS);
-  //curAnimation = ANIMATION_CIRCLE;
+  //curAnimation = (int)random(NUM_ANIMATIONS);
+  curAnimation = ANIMATION_CIRCLE;
   curFrame = 0;
   curState = 0;
   
@@ -525,8 +447,4 @@ void resetAverage() {
 
 void increaseAverage(float value) {
   averageTracker += (value - averageTrackerLastValue - averageTracker)/(frameCount - averageTrackerStartFrame + 1);
-}
-
-float easeFunc(float t) {
-  return pow(t, easeValue)/(pow(t, easeValue)+pow((1-t), easeValue));
 }
