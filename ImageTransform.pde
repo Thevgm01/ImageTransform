@@ -1,10 +1,12 @@
+import java.util.*;
 final int DESIRED_FRAMERATE = 60;
 final int NUM_THREADS = 6;//The number of threads, up to 8
 final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
-final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 4;//4;
-final int TOTAL_DELAY_FRAMES = DESIRED_FRAMERATE * 1;
+final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 3;//4;
+final int TOTAL_DELAY_FRAMES = DESIRED_FRAMERATE / 2;
 final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 2;//3;
 final String IMAGES_DIR = "";//"C:/Users/thevg/Desktop/Processing/Projects/Images/Spaceships";
+                          //"C:/Users/thevg/Pictures/Makoto Niijima Archive";
 final String IMAGES_LIST_FILE = "C:/Users/thevg/Pictures/Wallpapers/list.txt";
 final boolean preAnimate = true;
 final boolean cycle = true;
@@ -29,8 +31,9 @@ PImage assembledImg;
 int totalSize;//The size of the window, width * height
 int numToCheck;//Check this many pixels from the original image
 
-int[] processIndexes;//How many loops each of the image processing threads have gone through
-int[] processOrder;//Check the pixels of the original image in this order
+TreeSet<ColorNode> sortedPixels;
+int sortIndex;
+int analyzeIndex;
 int[] newOrder;//Where each pixel in the final arrangement originally comes from
 
 int animationInitializer;
@@ -43,13 +46,15 @@ int curFrame;
 int averageTrackerLastValue = 0;
 int averageTrackerStartFrame = 0;
 float averageTracker;
+float prograssBarSlide = 0f;
+float progressBarSlideSpeed = 0.1f;
 
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
 
 void setup() {
-  fullScreen();
-  //size(1600, 900);
+  //fullScreen();
+  size(1600, 900);
   //size(800, 450);
   //size(400, 225);
   //size(200, 100);
@@ -58,10 +63,15 @@ void setup() {
   totalSize = width * height;
   numToCheck = 750;//round(sqrt(totalSize));
   
-  startImgName = getRandomImageName("");
-  endImgName = getRandomImageName(startImgName);
-  startImg = loadImage(startImgName);
-  endImg = loadImage(endImgName);
+  startImg = null;
+  endImg = null;
+  while(startImg == null) {
+    startImgName = getRandomImageName("");
+    startImg = loadImage(startImgName);
+  } while(endImg == null) {
+    endImgName = getRandomImageName(startImgName);
+    endImg = loadImage(endImgName);
+  }
   nextImgSmall = endImg.copy();
   resizeImage(startImg, width, height);
   resizeImage(endImg, width, height);
@@ -69,13 +79,8 @@ void setup() {
   startImg = imageOnBlack(startImg);
   endImg = imageOnBlack(endImg);
   
-  processIndexes = new int[NUM_THREADS];
+  sortedPixels = new TreeSet<ColorNode>();
   newOrder = new int[totalSize];
-  processOrder = new int[totalSize];
-  for(int i = 0; i < totalSize; i++)
-    processOrder[i] = i;
-  randomizeArrayOrder(processOrder);
-  
   animationIndexes = new int[NUM_THREADS];
   if(preAnimate) animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
   
@@ -114,8 +119,11 @@ String getRandomImageName(String exclude) {
 }
 
 void loadNextImage() {
-  nextImgName = getRandomImageName(endImgName);
-  nextImg = loadImage(nextImgName);
+  nextImg = null;
+  while(nextImg == null) {
+    nextImgName = getRandomImageName(endImgName);
+    nextImg = loadImage(nextImgName);
+  }
   nextImgSmall = nextImg.copy();
   resizeImage(nextImg, width, height);
   resizeImage(nextImgSmall, width/4, height/3);
@@ -133,35 +141,37 @@ PImage imageOnBlack(PImage img) {
 }
 
 void mouseClicked() {
-  if(preAnimate && curState > 2) curState = 2;
-  else if(curState > 1)          curState = 1;
+  if(curState > 3) prograssBarSlide = PI;
+  if(preAnimate && curState > 3)       curState = 3;
+  else if(!preAnimate && curState > 1) curState = 1;
   curFrame = 0;
   record = false;
 }
 
 void draw() {
-  int numProcessed = 0, numAnimated = 0;
-  for(int i = 0; i < NUM_THREADS; i++) {
-    numProcessed += processIndexes[i];
+  int numAnimated = 0;
+  for(int i = 0; i < NUM_THREADS; i++)
     numAnimated += animationIndexes[i];
-  }
-  
+
   switch(curState) {
     case 0:
-      boolean stillProcessing = numProcessed < totalSize,
+      boolean stillProcessing = sortIndex + analyzeIndex < totalSize * 2,
               initializeAnimationFrame = preAnimate && animationInitializer < TOTAL_ANIMATION_FRAMES;
       if(stillProcessing || initializeAnimationFrame) {
         while(initializeAnimationFrame) {
           float frac = (float)animationInitializer / TOTAL_ANIMATION_FRAMES;
           fadeToBlack(startImg, frac);
-          animationFrames[animationInitializer] = get();
-          animationInitializer++;
+          animationFrames[animationInitializer]   = get();
+          animationFrames[animationInitializer+1] = get();
+          animationInitializer += 2;
           if(stillProcessing || animationInitializer >= TOTAL_ANIMATION_FRAMES)
             initializeAnimationFrame = false;
         }
         background(startImg);
-        showAllInfo(numProcessed, totalSize, "Pixels analyzed");
+        showAllInfo(sortIndex + analyzeIndex, totalSize * 2, "Pixels analyzed");
+        moveProgressBar(progressBarSlideSpeed);
       } else {
+        background(startImg);
         resetAverage();
         if(record) saveFrame(recordingFilename);
         if(preAnimate) {
@@ -180,6 +190,7 @@ void draw() {
         updatePixels();
         curFrame++; 
         if(record) saveFrame(recordingFilename);
+        moveProgressBar(-progressBarSlideSpeed);
       } else if(cycle) {
         curFrame = 0;
         curState += 3;
@@ -196,6 +207,7 @@ void draw() {
         background(animationFrames[curFrame]);
         curFrame++; 
         if(record) saveFrame(recordingFilename);
+        moveProgressBar(-progressBarSlideSpeed);
       } else if(cycle) {
         curFrame = 0;
         curState++;
@@ -219,7 +231,9 @@ void draw() {
         curState++;
       } break;
     case 6:
+      background(endImg);
       if(curFrame < TOTAL_DELAY_FRAMES) {
+        moveProgressBar(progressBarSlideSpeed);
         curFrame++;
       } else {
         curState++;
@@ -236,51 +250,30 @@ void draw() {
       endImg = imageOnBlack(nextImg);
       nextImg = null;
       
+      numAnimated = 0;
       resetAll();
-  } 
+  }
+  if(showProgressBar) showProgressBar(numAnimated);
 }
 
-void analyzeStartImage0() { analyzeStartImage(0); }
-void analyzeStartImage1() { analyzeStartImage(1); }
-void analyzeStartImage2() { analyzeStartImage(2); }
-void analyzeStartImage3() { analyzeStartImage(3); }
-void analyzeStartImage4() { analyzeStartImage(4); }
-void analyzeStartImage5() { analyzeStartImage(5); }
-void analyzeStartImage6() { analyzeStartImage(6); }
-void analyzeStartImage7() { analyzeStartImage(7); }
-
-void analyzeStartImage(int offset) {
-  for(int i = offset; i < totalSize; i += NUM_THREADS) {          
-    findBestFit(i);
-    processIndexes[offset]++;
+void analyzeStartImage() {
+  while(sortIndex < totalSize) {
+    ColorNode cn = new ColorNode(startImg.pixels[sortIndex], sortIndex);
+    sortedPixels.add(cn);
+    sortIndex++; 
   }
-}
-
-// Returns an index in the startImg.pixels[] array
-// where the pixel at that index most closely matches the target color
-void findBestFit(int index) {
-  color target = endImg.pixels[index];
-  int targetHue = target >> HUE & 0xff,
-      targetSat = target >> SATURATION & 0xff,
-      targetBrt = target >> BRIGHTNESS & 0xff;
-     
-  int bestFitIndex = -1;
-  float bestFitValue = 999999f;
-  
-  int startingIndex = (int)random(totalSize - numToCheck);
-  for(int i = startingIndex; i < startingIndex + numToCheck; i++) {
-    int curIndex = processOrder[i];
-    color cur = startImg.pixels[curIndex];
-    int curFit = 
-      abs(targetHue - (cur >> HUE & 0xff)) +
-      abs(targetSat - (cur >> SATURATION & 0xff)) +
-      abs(targetBrt - (cur >> BRIGHTNESS & 0xff));//(cur & 0xff)
-    if(curFit < bestFitValue) {
-      bestFitIndex = curIndex;
-      bestFitValue = curFit;
-    }
+  while(analyzeIndex < totalSize) {
+    ColorNode cn = new ColorNode(endImg.pixels[analyzeIndex], analyzeIndex),
+              floor = sortedPixels.floor(cn),
+              ceiling = sortedPixels.ceiling(cn);
+    if(floor == null) 
+      newOrder[analyzeIndex] = ceiling.index;
+    else if(ceiling == null || abs(cn.sum - floor.sum) <= abs(cn.sum - ceiling.sum))
+      newOrder[analyzeIndex] = floor.index;
+    else
+      newOrder[analyzeIndex] = ceiling.index;
+    analyzeIndex++;
   }
-  newOrder[index] = bestFitIndex;
 }
 
 void createAnimationFrames0() { createAnimationFrames(0); }
@@ -294,28 +287,19 @@ void createAnimationFrames7() { createAnimationFrames(7); }
 
 void createAnimationFrames(int offset) {
   for(int i = offset; i < TOTAL_ANIMATION_FRAMES; i += NUM_THREADS) {
+    while(animationInitializer < i) delay(10);
     createAnimationFrame(animationFrames[i].pixels, (float)i / TOTAL_ANIMATION_FRAMES);
     animationIndexes[offset]++;
   }
 }
 
-void createAnimationFrame(color[] localPixels, float frac) {
-  //PImage result = createImage(width, height, ARGB);
-  //PImage image = animationFrames[index];
-  //float frac = (float)index / TOTAL_ANIMATION_FRAMES;
-  
-  for(int i = 0; i < totalSize; i++) {
-    int index0 = processOrder[i],
-        index1 = newOrder[index0];
+void createAnimationFrame(color[] localPixels, float frac) {  
+  for(int index0 = 0; index0 < totalSize; index0++) {
+    int index1 = newOrder[index0];
     int startX = index1 % width,
         startY = index1 / width,
         destX  = index0 % width,
         destY  = index0 / width;
-    //int deltaX = (int)((destX - startX) * frac);
-    //int deltaY = (int)((destY - startY) * frac);
-    //float logFrac = frac * logSlope - logSlope/2f;
-    //float logFrac = frac * 30f - 15f;
-    //image.set(startX + deltaX, startY + deltaY, col);
     float logFracX = frac * logSlope * logMultX - logSlope * logMultX / 2f;
     float logFracY = frac * logSlope * logMultY - logSlope * logMultY / 2f;
     int deltaX = round(logisticFunc(logFracX, destX - startX, 0.65f));
@@ -339,11 +323,13 @@ void fadeToImage(PImage back, PImage front, float frac) {
 }
 
 void resetAll() {
-  for(int i = 0; i < NUM_THREADS; i++) {
-    processIndexes[i] = 0;
+  sortedPixels.clear();
+  sortIndex = 0;
+  analyzeIndex = 0;
+  thread("analyzeStartImage");
+
+  for(int i = 0; i < NUM_THREADS; i++)
     animationIndexes[i] = 0;
-    thread("analyzeStartImage" + i);
-  }
   animationInitializer = 0;
     
   curFrame = 0;
@@ -378,12 +364,12 @@ void showAllInfo(int cur, int max, String label) {
     tint(255, 220);
     image(nextImgSmall, width - nextImgSmall.width, 0);
   }
-  if(showProgressBar) {
+  /*if(showProgressBar) {
     float scale = preAnimate ? 0.5f : 1f;
     float frac = scale * cur / max;
     if(curState == 2) frac += scale;
     progressBar(frac);
-  }
+  }*/
   
   advanceAverageTracker(cur);
 }
@@ -401,20 +387,37 @@ void showAnalysisText(int cur, int max, String label) {
   text(values, 70, 10);
 }
 
-void progressBar(float frac) {
-  final int barHeight = height/40;
-  final int sideDistance = width/40;
+void moveProgressBar(float amount) {
+  prograssBarSlide -= amount;
+  if(prograssBarSlide < 0) prograssBarSlide = 0;
+  else if(prograssBarSlide > PI) prograssBarSlide = PI;
+}
+
+void showProgressBar(int numAnimated) {
+  float frac;
+  if(curState <= 3) frac =
+    ((sortIndex + analyzeIndex) / (totalSize * 2f) +
+    (float)numAnimated / TOTAL_ANIMATION_FRAMES)/2f;
+  else frac = 0;
+        
+  final int barHeight = height/50;
+  final int sideDistance = width/60;
+  final int borderThickness = 2;
   
   int x = sideDistance, w = width - sideDistance*2,
       y = height - sideDistance - barHeight, h = barHeight;
+      
+  float animationY = (cos(prograssBarSlide) - 1f) * (barHeight + sideDistance + borderThickness)/2f;
   
-  noFill();
-  stroke(255);
-  strokeWeight(2);
-  rect(x, y, w, h);
-  fill(255);
-  noStroke();
-  rect(x, y, w*frac, h);
+  if(y + animationY < height) {
+    noFill();
+    stroke(255);
+    strokeWeight(borderThickness);
+    rect(x, y - animationY, w, h);
+    fill(255);
+    noStroke();
+    rect(x, y - animationY, w*frac, h);
+  }
 }
 
 void advanceAverageTracker(int nextVal) {
