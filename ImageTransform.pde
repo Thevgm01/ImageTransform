@@ -1,11 +1,20 @@
-final int DESIRED_FRAMERATE = 30;
-final int PROCESS_THREADS = 5;
+final int DESIRED_FRAMERATE = 60;
+final int NUM_THREADS = 5;//The number of threads, up to 8
 final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
+final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 2;//4;
+final int TOTAL_DELAY_FRAMES = DESIRED_FRAMERATE * 1;
+final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 1;//3;
 final String IMAGES_DIR = "C:/Users/thevg/Pictures/Wallpapers/Spaceships";
-final String IMAGES_LIST_FILE = "";
+final String IMAGES_LIST_FILE = "C:/Users/thevg/Pictures/Wallpapers/list.txt";
 final boolean CYCLE = true;
+boolean showCalculatedPixels = false;
+boolean showAnalysisText = false;
+boolean showProgressBar = true;
+boolean showNextImage = false;
 
 int imagesListFileSize = 0;
+
+int curState = 0;
 
 String startImgName;
 String endImgName;
@@ -18,35 +27,33 @@ PImage assembledImg;
 int totalSize;//The size of the window, width * height
 int numToCheck;//Check this many pixels from the original image
 
-int[] processIndex;//How many loops each of the image processing threads have gone through
-int lastProcessIndex = 0;
-int processStartFrame = 0;
-float averageProcessed;
+int[] processIndexes;//How many loops each of the image processing threads have gone through
 int[] processOrder;//Check the pixels of the original image in this order
 int[] newOrder;//Where each pixel in the final arrangement originally comes from
-boolean showCalculatedPixels = true;
-boolean showAnalysisText = true;
 
-int animationFrame = 0;
-final int totalAnimationFrames = DESIRED_FRAMERATE * 2;//4;
+int[] animationIndexes;
+PImage[] animationFrames;
+
+int curAnimationFrame = 0;
+int curDelayFrame = 0;
+int curFadeFrame = 0;
+
+int averageTrackerLastValue = 0;
+int averageTrackerStartFrame = 0;
+float averageTracker;
+
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
 
-int delayFrame = 0;
-final int totalDelayFrames = DESIRED_FRAMERATE * 1;
-
-int fadeFrame = 0;
-final int totalFadeFrames = DESIRED_FRAMERATE * 1;//3;
-
 void setup() {
-  //size(1600, 900);
-  size(800, 450);
+  size(1600, 900);
+  //size(800, 450);
   //size(400, 225);
   //size(200, 100);
   frameRate(DESIRED_FRAMERATE);
   colorMode(HSB);
   totalSize = width * height;
-  numToCheck = 2000;//round(sqrt(totalSize));
+  numToCheck = 500;//round(sqrt(totalSize));
   
   startImgName = getRandomImageName("");
   endImgName = getRandomImageName(startImgName);
@@ -59,7 +66,7 @@ void setup() {
   startImg = imageOnBlack(startImg);
   endImg = imageOnBlack(endImg);
   
-  processIndex = new int[PROCESS_THREADS];
+  processIndexes = new int[NUM_THREADS];
   newOrder = new int[totalSize];
   processOrder = new int[totalSize];
   for(int i = 0; i < totalSize; i++) {
@@ -67,6 +74,9 @@ void setup() {
     processOrder[i] = i;
   }
   randomizeArrayOrder(processOrder);
+  
+  animationIndexes = new int[NUM_THREADS];
+  animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
   
   resetAll();
 }
@@ -122,67 +132,80 @@ PImage imageOnBlack(PImage img) {
 }
 
 void mouseClicked() {
-  animationFrame = 0;
-  delayFrame = 0;
-  fadeFrame = 0;
+  if(curState > 2) curState = 2;
+  curAnimationFrame = 0;
+  curDelayFrame = 0;
+  curFadeFrame = 0;
   record = false;
 }
 
 void draw() {
-  int numProcessed = 0;
-  for(int i = 0; i < PROCESS_THREADS; i++) numProcessed += processIndex[i];
-  
-  if(numProcessed < totalSize) {
-    background(startImg);
-    if(showCalculatedPixels) {
-      noStroke();
-      fill(255);
-      int topOfRectangle = lastProcessIndex / width;
-      rect(0, topOfRectangle, width, 1 + numProcessed / width - topOfRectangle);
-      tint(255, 220);
-      image(nextImgSmall, width - nextImgSmall.width, 0);
-    }
-    if(showAnalysisText) {
-      showAnalysisText(numProcessed);
-      averageProcessed = increaseAverage(
-        averageProcessed, 
-        frameCount - processStartFrame, 
-        numProcessed - lastProcessIndex);
-    }
-    lastProcessIndex = numProcessed;
-  } else if(animationFrame <= totalAnimationFrames) {
-    float frac = (float)animationFrame / totalAnimationFrames;
-    fadeToBlack(startImg, frac);    
-    animatePixels(frac);
-    animationFrame++; 
-    if(record) saveFrame(recordingFilename);
-  } else if(!CYCLE) {
-    return;
-  } else if(delayFrame < totalDelayFrames) {
-    delayFrame++; 
-  } else if(fadeFrame < totalFadeFrames) {
-    if(fadeFrame == 0) {
-      assembledImg = get(0, 0, width, height);
-      if(nextImg == null) thread("loadNextImage");
-    } else {
-      float frac = (float)fadeFrame / totalFadeFrames;
-      fadeToImage(assembledImg, endImg, frac);
-    }
-    fadeFrame++;
-  } else {
-    if(nextImg == null){
-      //println("Next image not loaded");
-      return;
-    }
-    
-    startImgName = endImgName;
-    startImg = endImg;
-    endImgName = nextImgName;
-    endImg = imageOnBlack(nextImg);
-    nextImg = null;
-    
-    resetAll();
+  int numProcessed = 0, numAnimated = 0;
+  for(int i = 0; i < NUM_THREADS; i++) {
+    numProcessed += processIndexes[i];
+    numAnimated += animationIndexes[i];
   }
+  
+  switch(curState) {
+    case 0: 
+      if(numProcessed < totalSize) {
+        tint(255);
+        background(startImg);
+        showAllInfo(numProcessed, totalSize, "Pixels analyzed");
+        break;
+      } else {
+        for(int i = 0; i < NUM_THREADS; i++)
+          thread("createAnimationFrames" + i);
+        resetAverage();
+        curState++;
+      }
+    case 1:
+      if(numAnimated < TOTAL_ANIMATION_FRAMES) {
+        tint(255);
+        background(startImg);
+        showAllInfo(numAnimated, TOTAL_ANIMATION_FRAMES, "Frames animated");
+        break;
+      } else curState++;
+    case 2:
+      if(curAnimationFrame < TOTAL_ANIMATION_FRAMES) {
+        float frac = (float)curAnimationFrame / TOTAL_ANIMATION_FRAMES;
+        fadeToBlack(startImg, frac);
+        tint(255);
+        image(animationFrames[curAnimationFrame], 0, 0);
+        curAnimationFrame++; 
+        if(record) saveFrame(recordingFilename);
+        break;
+      } else if(CYCLE) curState++;
+    case 3:
+      if(curDelayFrame < TOTAL_DELAY_FRAMES) {
+        curDelayFrame++;
+        break;
+      } else { 
+        assembledImg = get(0, 0, width, height);
+        if(nextImg == null) thread("loadNextImage");
+        curState++;
+      }
+    case 4:
+      if(curFadeFrame < TOTAL_FADE_FRAMES) {
+        float frac = (float)curFadeFrame / TOTAL_FADE_FRAMES;
+        fadeToImage(assembledImg, endImg, frac);
+        curFadeFrame++;
+        break;
+      } else curState++;
+    default:
+      if(nextImg == null){
+        //println("Next image not yet loaded!");
+        break;
+      }
+      
+      startImgName = endImgName;
+      startImg = endImg;
+      endImgName = nextImgName;
+      endImg = imageOnBlack(nextImg);
+      nextImg = null;
+      
+      resetAll();
+  } 
 }
 
 void analyzeStartImage0() { analyzeStartImage(0); }
@@ -195,9 +218,9 @@ void analyzeStartImage6() { analyzeStartImage(6); }
 void analyzeStartImage7() { analyzeStartImage(7); }
 
 void analyzeStartImage(int offset) {
-  for(int i = offset; i < totalSize; i += PROCESS_THREADS) {          
+  for(int i = offset; i < totalSize; i += NUM_THREADS) {          
     findBestFit(i);
-    processIndex[offset]++;
+    processIndexes[offset]++;
   }
 }
 
@@ -231,20 +254,27 @@ int calculateFit(int targetHue, int targetSat, int targetBrt, color test) {
          abs(targetBrt - (test >> BRIGHTNESS & 0xff));//(cur & 0xff)
 }
 
-void showAnalysisText(int numProcessed) {
-  float percent = ((float)numProcessed / totalSize) * 100;
-  String titles = "analyzed:\nper frame:\npercent:\nframerate:";
-  String values = numProcessed + "/" + totalSize + "\n"
-                  + round(averageProcessed) + "\n"
-                  + round(percent*10)/10f + "\n"
-                  + round(frameRate*10)/10f;
-  fill(255);
-  text(titles, 0, 10);
-  text(values, 60, 10);
+void createAnimationFrames0() { createAnimationFrames(0); }
+void createAnimationFrames1() { createAnimationFrames(1); }
+void createAnimationFrames2() { createAnimationFrames(2); }
+void createAnimationFrames3() { createAnimationFrames(3); }
+void createAnimationFrames4() { createAnimationFrames(4); }
+void createAnimationFrames5() { createAnimationFrames(5); }
+void createAnimationFrames6() { createAnimationFrames(6); }
+void createAnimationFrames7() { createAnimationFrames(7); }
+
+void createAnimationFrames(int offset) {
+  for(int i = offset; i < TOTAL_ANIMATION_FRAMES; i += NUM_THREADS) {
+    animationFrames[i] = createAnimationFrame((float)i / TOTAL_ANIMATION_FRAMES);
+    animationIndexes[offset]++;
+  }
 }
 
-void animatePixels(float frac) {  
+PImage createAnimationFrame(float frac) {
+  PImage result = createImage(width, height, ARGB);
   for(int i = 0; i < totalSize; i++) {
+    //if(result.pixels[i] != 0) continue;
+    
     int index0 = processOrder[i],
         index1 = newOrder[index0];
     int startX = index1 % width,
@@ -257,8 +287,9 @@ void animatePixels(float frac) {
     int deltaX = round(logisticFunc(logFrac, destX - startX, 0.65f));
     int deltaY = round(logisticFunc(logFrac, destY - startY, 0.65f));
     color col = startImg.pixels[index1];
-    set(startX + deltaX, startY + deltaY, col);
+    result.set(startX + deltaX, startY + deltaY, col);
   }
+  return result;
 }
 
 void fadeToBlack(PImage back, float frac) {
@@ -276,17 +307,18 @@ void fadeToImage(PImage back, PImage front, float frac) {
 }
 
 void resetAll() {
-  for(int i = 0; i < PROCESS_THREADS; i++) {
-    processIndex[i] = 0;
+  for(int i = 0; i < NUM_THREADS; i++) {
+    processIndexes[i] = 0;
+    animationIndexes[i] = 0;
     thread("analyzeStartImage" + i);
   }
+    
+  curState = 0;
+  curAnimationFrame = 0;
+  curDelayFrame = 0;
+  curFadeFrame = 0;
   
-  lastProcessIndex = 0;
-  processStartFrame = frameCount;
-  //averageProcessed = 0;
-  animationFrame = 0;
-  delayFrame = 0;
-  fadeFrame = 0;
+  resetAverage();
   
   background(startImg);
 }
@@ -301,8 +333,69 @@ void randomizeArrayOrder(int[] array) {
   }
 }
 
-float increaseAverage(float average, float size, float value) {
-  return average + (value - average)/(size+1);
+void showAllInfo(int cur, int max, String label) {
+  if(showCalculatedPixels) {
+    noStroke();
+    fill(255);
+    int topOfRectangle = averageTrackerLastValue / width;
+    rect(0, topOfRectangle, width, 1 + cur / width - topOfRectangle);
+  }
+  if(showAnalysisText) {
+    showAnalysisText(cur, max, label);
+  }
+  if(showNextImage) {
+    tint(255, 220);
+    image(nextImgSmall, width - nextImgSmall.width, 0);
+  }
+  if(showProgressBar) {
+    progressBar(cur, max); 
+  }
+  
+  advanceAverageTracker(cur);
+}
+
+void showAnalysisText(int cur, int max, String label) {  
+  String titles = label + "\n" + cur + "/" + max
+                  + "\nper frame:\nper second:\npercent:\nframerate:";
+  String values = "\n\n"
+                  + round(averageTracker) + "\n"
+                  + round(averageTracker * DESIRED_FRAMERATE) + "\n"
+                  + round(((float)cur / max) * 1000)/10f + "\n"
+                  + round(frameRate*10)/10f;
+  fill(255);
+  text(titles, 0, 10);
+  text(values, 70, 10);
+}
+
+void progressBar(int cur, int max) {
+  final int barHeight = height/40;
+  final int sideDistance = width/40;
+  
+  int x = sideDistance, w = width - sideDistance*2,
+      y = height - sideDistance - barHeight, h = barHeight;
+  
+  noFill();
+  stroke(255);
+  strokeWeight(2);
+  rect(x, y, w, h);
+  fill(255);
+  noStroke();
+  rect(x, y, w*(float)cur/max, h);
+}
+
+void advanceAverageTracker(int nextVal) {
+  increaseAverage(nextVal);
+  averageTrackerLastValue = nextVal;
+}
+
+void resetAverage() {
+  averageTrackerLastValue = 0;
+  averageTrackerStartFrame = frameCount;
+  averageTracker = 0;
+}
+
+void increaseAverage(float value) {
+  averageTracker += (value - averageTrackerLastValue - averageTracker)/(frameCount - averageTrackerStartFrame + 1);
 }
 
 float logisticFunc(float x, float l, float k) {
