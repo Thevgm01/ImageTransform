@@ -10,15 +10,16 @@ final int ANIMATION_SPIRAL = 2;      // startAngle, totalAngle, startRadius, end
 final int ANIMATION_ELLIPSE = 3;
 final int ANIMATION_BURST_PHYSICS = 4;
 final int ANIMATION_LURCH = 5;
-final int NUM_ANIMATIONS = 6;
+final int ANIMATION_FALLING_SAND = 6;
+final int NUM_ANIMATIONS = 7;
 
-final int ANIMATION_CIRCLE_AXIS = 6; // centerY, startAngle, endAngle, radius
-final int ANIMATION_FALLING_SAND = 7;
+final int ANIMATION_CIRCLE_AXIS = 10; // centerY, startAngle, endAngle, radius
 
 final int DEFAULT = 0;
 final int POLY = 1;
 final int POLY_INVERSE = 2;
-final int POLY_STRONG = 3;
+final int STEEP = 3;
+final int POLY_STEEP = 4;
 
 final float easeValue = 3f;
 final float polynomialPower = 2f;
@@ -35,12 +36,13 @@ float[][] noiseTable;
 float[] sinTable, cosTable;
 
 void initializeAnimator() {
-  easing = new float[TOTAL_ANIMATION_FRAMES][4];
+  easing = new float[TOTAL_ANIMATION_FRAMES][5];
   for(int i = 0; i < TOTAL_ANIMATION_FRAMES; i++) {
-    easing[i][DEFAULT] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1));
+    easing[i][DEFAULT] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1), easeValue);
     easing[i][POLY] = pow(easing[i][DEFAULT], polynomialPower);
     easing[i][POLY_INVERSE] = pow(easing[i][DEFAULT], 1f/polynomialPower);
-    easing[i][POLY_STRONG] = pow(easing[i][DEFAULT], polynomialPower * 2f);
+    easing[i][STEEP] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1), easeValue * 2f);
+    easing[i][POLY_STEEP] = pow(easing[i][STEEP], polynomialPower);
   }
   
   noiseTable = new float[height][width];
@@ -61,8 +63,8 @@ void randomizeAnimator() {
     
   curAnimation = (int)random(NUM_ANIMATIONS);
   //curAnimation = ANIMATION_ELLIPSE;
-  //curAnimation = ANIMATION_LURCH;
-  curAnimation = ANIMATION_FALLING_SAND;
+  curAnimation = ANIMATION_LURCH;
+  //curAnimation = ANIMATION_FALLING_SAND;
   
   easeMethodX = (int)random(3);
   do easeMethodY = (int)random(3);
@@ -77,8 +79,7 @@ float getTrigTable(float[] table, float angle) {
   return table[(int)(angle * trigTableSize)];
 }
 
-int[] getCoords(int i) {
-  int j = newOrder[i];
+int[] getCoords(int i, int j) {
   return new int[] {
     j % width,
     j / width,
@@ -87,8 +88,8 @@ int[] getCoords(int i) {
     startImg.pixels[j] };
 }
 
-float easeFunc(float t) {
-  return pow(t, easeValue)/(pow(t, easeValue)+pow((1-t), easeValue));
+float easeFunc(float t, float strength) {
+  return pow(t, strength)/(pow(t, strength)+pow((1-t), strength));
 }
 
 void createTransitionAnimation() {
@@ -112,7 +113,11 @@ void createAnimationFrames7() { createAnimationFrames(7); }
 
 void createAnimationFrames(int offset) {
   for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {
-    int[] coords = getCoords(i);
+    animationIndexes[offset]++;
+
+    int j = newOrder[i];
+    if(j == -1) continue;
+    int[] coords = getCoords(i, j);
 
     switch(curAnimation) {
       case ANIMATION_LINEAR: 
@@ -130,7 +135,6 @@ void createAnimationFrames(int offset) {
       //case ANIMATION_CIRCLE_AXIS: 
       //  animatePixel_circleAxis(c, coords); break;
     }
-    animationIndexes[offset]++;
   }
 }
 
@@ -273,8 +277,8 @@ void animatePixel_burstPhysics(int[] coords) {
     }
 
     animationFrames[frame].pixels[
-      round(lerp(newY, coords[Y2], easing[frame][POLY_STRONG])) * width + 
-      round(lerp(newX, coords[X2], easing[frame][POLY_STRONG]))] = coords[COLOR];
+      round(lerp(newY, coords[Y2], easing[frame][POLY_STEEP])) * width + 
+      round(lerp(newX, coords[X2], easing[frame][POLY_STEEP]))] = coords[COLOR];
   }
 }
 
@@ -313,87 +317,105 @@ void animatePixel_lurch(int[] coords) {
   }
 }
 
-void animate_fallingSand() {
-  boolean[] falling = new boolean[TOTAL_SIZE];
-  int[] sandLastRadius = new int[width];
+class Sand {
+  boolean falling = true;
+  
+  int x;
+  float y;
+  color c;
+  
+  int lastFrame = -1;
+  
+  public Sand(int x, int y, color c) {
+    this.x = x;
+    this.y = y;
+    this.c = c;
+  }
+}
 
-  int[][] coords = new int[TOTAL_SIZE][5];
-  int[][] linkedPixel = new int[width][height];
-  float[] newY = new float[TOTAL_SIZE];
+void animate_fallingSand() {
+  int[] sandLastRadius = new int[width];
+  Sand[] sandList = new Sand[TOTAL_SIZE];
+  int[] sandPointers = new int[TOTAL_SIZE];
   float velocity = 0;
   float gravity = 0.15f;
   
-  for(int x = 0; x < width; x++) {
-    for(int y = 0; y < height; y++) {
-      linkedPixel[x][y] = -1;
+  for(int i = 0; i < TOTAL_SIZE; i++) {
+    int j = newOrder[i];
+    if(j == -1) continue;
+    if(sandList[j] == null) {
+      int[] coords = getCoords(i, j);
+      sandList[j] = new Sand(coords[X1], coords[Y1], coords[COLOR]);
     }
+    sandPointers[i] = j;
   }
   
-  for(int i = 0; i < TOTAL_SIZE; i++) {
-    falling[i] = true;
-    coords[i] = getCoords(i);
-    newY[i] = coords[i][Y1];
-    if(coords[i][COLOR] == color(0)) continue; // Ignore black -- think about doing this for others
-    linkedPixel[coords[i][X1]][coords[i][Y1]] = i;
-  }
-    
+  int finalFallFrame = -1;
   for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {
     velocity += gravity;
     animationIndexes[0] += TOTAL_SIZE / TOTAL_ANIMATION_FRAMES;
     boolean fellThisFrame = false;
 
-    for(int x = width - 1; x >= 0; x--) {
-      for(int y = height - 1; y >= 0; y--) {
+    for(int i = TOTAL_SIZE - 1; i >= 0; i--) {
+      if(sandList[sandPointers[i]] == null) continue;
+      Sand s = sandList[sandPointers[i]];
+      
+      if(finalFallFrame < 0) {
+        if(s.lastFrame == frame) continue;
+        else s.lastFrame = frame;
         
-        if(linkedPixel[x][y] < 0) continue;
-        int pixel = linkedPixel[x][y];
-        
-        if(falling[pixel]) {
+        if (s.falling) {
+          s.y += velocity;
           fellThisFrame = true;
-          newY[pixel] += velocity;
-          //localCoords[Y1] = round(newY[pixel]);
-          //if(newY[pixel] >= height - 1) newY[pixel] = height - 1;
   
-          if(height - newY[pixel] < sandLastRadius[x]) {
-            falling[pixel] = false;
+          if (height - s.y - 1 < sandLastRadius[s.x]) {
+            s.falling = false;
+    
             boolean searching = true;
-            int radius = sandLastRadius[x];
-            while(searching) {
-              for(int i = 0; i <= radius; i++) {
-                if(
-                  x + radius - i < width &&
-                  sandLastRadius[x + radius - i] <= i) {
-                    sandLastRadius[x] = radius;
-                    coords[pixel][X1] += radius - i; 
+            int radius = sandLastRadius[s.x];
+            while (searching) {
+              for (int k = 0; k <= radius; k++) {
+                //check x + radius - i, y + i
+                if (
+                  s.x + radius - k < width &&
+                  sandLastRadius[s.x + radius - k] <= k) { 
+                  sandLastRadius[s.x] = radius; 
+                  s.x += radius - k; 
+                  searching = false; 
+                  break;
+                } else if (
+                  k != radius && 
+                  s.x - radius + k >= 0 &&
+                  sandLastRadius[s.x - radius + k] <= k) { 
+                    sandLastRadius[s.x] = radius; 
+                    s.x -= radius - k; 
                     searching = false; 
-                    break; 
-                }
-                else if(
-                  i != radius && 
-                  x - radius + i >= 0 &&
-                  sandLastRadius[x - radius + i] <= i) {
-                    sandLastRadius[x] = radius; 
-                    coords[pixel][X1] -= radius - i; 
-                    searching = false; 
-                    break; 
+                    break;
                 }
               }
               radius++;
             }
-            
-            sandLastRadius[coords[pixel][X1]]++;
-            coords[pixel][Y1] = height - sandLastRadius[coords[pixel][X1]];
-            newY[pixel] = coords[pixel][Y1];
+    
+            sandLastRadius[s.x]++;
+            s.y = height - sandLastRadius[s.x];
           }
-        }
-        if(x < 0 || x >= width - 1 || round(newY[pixel]) < 0 || round(newY[pixel]) >= height - 1) continue;
+        }      
+        
+        //if(s.x < 0 || s.x >= width - 1 || round(s.y) < 0 || round(s.y) >= height - 1) continue;
         animationFrames[frame].pixels[
-          round(newY[pixel]) * width + 
-          coords[pixel][X1]] = coords[pixel][COLOR];
+          round(s.y) * width + s.x] = s.c;
+          
+      } else {
+        float frac = (float)(frame - finalFallFrame) / (TOTAL_ANIMATION_FRAMES - finalFallFrame);
+        float fracEase = easing[(int)(frac * TOTAL_ANIMATION_FRAMES)][DEFAULT];
+        float newX = s.x + (i % width - s.x) * fracEase;
+        float newY = s.y + (i / width - s.y) * fracEase;
+        animationFrames[frame].pixels[
+          round(newY) * width + round(newX)] = s.c;
       }
     }
-    if(!fellThisFrame) {
-      //break;
+    if(finalFallFrame < 0 && !fellThisFrame) {
+      finalFallFrame = frame;
     }
   }
 }

@@ -25,12 +25,13 @@ int imagesListFileSize = 0;
 final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 
 // CONFIGURATION //
+final boolean ignoreBlack = true;
 final boolean preAnimate = true; //Dramatically slows loading speed, but required for maintaining high framerate at large resolutions
 final boolean cycle = true;
 
 // ANALYSIS //
 final boolean showCalculatedPixels = false;
-final boolean showAnalysisText = false;
+final boolean showAnalysisText = true;
 final boolean showProgress = true;
 final boolean showProgressBar = false;
 final boolean showProgressBorder = true;
@@ -215,7 +216,7 @@ void draw() {
       if(numAnimated < TOTAL_SIZE) {
         background(startImg);
         //Fix this :)
-        showAllInfo(numAnimated, TOTAL_ANIMATION_FRAMES, "Frames animated");
+        showAllInfo(numAnimated, TOTAL_SIZE, "Pixels animated");
       } else {
         curState++;
       } break;
@@ -291,10 +292,15 @@ void analyzeStartImage(int offset) {
 }
 
 void findBestFit(int index) {
-  color target = endImg.pixels[index];
+  color target = endImg.pixels[index];  
   int targetHue = target >> HUE & 0xff,
       targetSat = target >> SATURATION & 0xff,
       targetBrt = target >> BRIGHTNESS & 0xff;
+     
+  if(ignoreBlack && targetBrt == 0) {
+    newOrder[index] = -1;
+    return;
+  }
      
   int bestFitIndex = -1;
   float bestFitValue = 999999f;
@@ -385,16 +391,16 @@ void showAllInfo(int cur, int max, String label) {
 
 void showAnalysisText(int cur, int max, String label) {  
   String titles = label + "\n" + cur + "/" + max
-                  + "\nper frame:\nseconds:\nper second:\npercent:\nframerate:";
+                  + "\npercent:\nper frame:\nseconds:\nper second:\nframerate:";
   String values = "\n\n"
+                  + round(((float)cur / max) * 1000)/10f + "\n"
                   + round(averageTracker) + "\n"
                   + (((float)millis() - averageTrackerStartTime)/1000f) + "\n"
                   + round(averageTracker * DESIRED_FRAMERATE) + "\n"
-                  + round(((float)cur / max) * 1000)/10f + "\n"
                   + round(frameRate*10)/10f;
   fill(255);
-  text(titles, 0, 10);
-  text(values, 70, 10);
+  text(titles, 5, 15);
+  text(values, 75, 15);
 }
 
 void showProgress(int numAnalyzed, int numAnimated) {
