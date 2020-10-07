@@ -2,33 +2,35 @@ final int desiredFramerate = 30;
 
 PImage startImg;
 PImage endImg;
+final int colorRange = 256;
+int totalSize;
+ArrayList<ArrayList<ColorIndex>> colorsByHue;
 
 String frameName = "frames/frame_#####";
 
-int totalSize;
 int[] processOrder;//Look at the pixels of the final image in this order
 int[] newOrder;//The order of pixels (starting image) to resemble the final image
 int processIndex = 0;
 
 int animationFrames = 0;
-final int totalAnimationFrames = 120;
+final int totalAnimationFrames = desiredFramerate * 4;
 
 final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 
 void setup() {
-  size(1600, 900);
-  //size(800, 450);
+  //size(1600, 900);
+  size(800, 450);
   //size(400, 225);
   //size(200, 100);
   frameRate(desiredFramerate);
-  colorMode(HSB);
+  colorMode(HSB, colorRange);
+  totalSize = width * height;
 
-  startImg = loadImage("cabin.jpg");
-  endImg = loadImage("dock.jpg");
+  startImg = loadImage("spaceship.jpg");
+  endImg = loadImage("cat.jpg");
   startImg.resize(width, height);
   endImg.resize(width, height);
   
-  totalSize = width * height;
   newOrder = new int[totalSize];
   processOrder = new int[totalSize];
   for(int i = 0; i < totalSize; i++) {
@@ -36,6 +38,16 @@ void setup() {
     processOrder[i] = i;
   }
   randomizeArrayOrder(processOrder);
+  
+  colorsByHue = new ArrayList<ArrayList<ColorIndex>>();
+  for(int i = 0; i < colorRange; i++) {
+    colorsByHue.add(new ArrayList<ColorIndex>()); 
+  }
+  for(int i = 0; i < totalSize; i++) {
+    int index = processOrder[i];
+    color cur = startImg.pixels[index];
+    colorsByHue.get(cur >> HUE & 0xff).add(new ColorIndex(cur, index));
+  }
 }
 
 void draw() {
@@ -80,28 +92,40 @@ void draw() {
 // where the pixel at that index most closely matches the target color
 void findBestFit(int index) {
   color target = endImg.pixels[index];
-  float targetHue = target >> HUE & 0xff,
-        targetSaturation = target >> SATURATION & 0xff,
-        targetBrightness = target >> BRIGHTNESS & 0xff;
+  int targetHue = target >> HUE & 0xff,
+      targetSat = target >> SATURATION & 0xff,
+      targetBrt = target >> BRIGHTNESS & 0xff;
      
-  int bestFitIndex = 0;
+  ColorIndex bestFit = null;
   float bestFitValue = 9999999f;
 
-  for(int i = 0; i < totalSize; i++) {
-    int curIndex = processOrder[i];
-    if(newOrder[curIndex] < 0) {
-      color cur = startImg.pixels[curIndex];
-      float curFit = 
-        abs(targetHue - (cur >> HUE & 0xff)) +
-        abs(targetSaturation - (cur >> SATURATION & 0xff)) +
-        abs(targetBrightness - (cur & 0xff));//(cur >> BRIGHTNESS & 0xff)
-      if(curFit < bestFitValue) {
-        bestFitIndex = curIndex;
-        bestFitValue = curFit;
+  int variance = 0;
+  while(bestFit == null) {
+    int hueToCheck = targetHue + variance;
+    if(hueToCheck >= 0 && hueToCheck < colorsByHue.size()) {
+      ArrayList<ColorIndex> curList = colorsByHue.get(hueToCheck);
+      for(int j = 0; j < curList.size(); j++) {
+        ColorIndex curColor = curList.get(j);
+        if(curColor.i >= 0) {
+          int curFit = calculateFit(targetHue, targetSat, targetBrt, curColor.c);
+          if(curFit < bestFitValue) {
+            bestFit = curColor;
+            bestFitValue = curFit;
+          }
+        }
       }
     }
+    if(variance > 0) variance = variance * -1;
+    else variance = variance * -1 + 1;
   }
-  newOrder[bestFitIndex] = index;
+  newOrder[bestFit.i] = index;
+  bestFit.i = -1;
+}
+
+int calculateFit(int targetHue, int targetSat, int targetBrt, color test) {
+  return abs(targetHue - (test >> HUE & 0xff)) +
+         abs(targetSat - (test >> SATURATION & 0xff)) +
+         abs(targetBrt - (test & 0xff));//(cur >> BRIGHTNESS & 0xff)
 }
 
 int[] getCoords(int index) {
@@ -115,5 +139,14 @@ void randomizeArrayOrder(int[] array) {
     int a = array[index];
     array[index] = array[i];
     array[i] = a;
+  }
+}
+
+class ColorIndex {
+  color c;
+  int i;
+  ColorIndex(color c, int i) {
+    this.c = c;
+    this.i = i;
   }
 }
