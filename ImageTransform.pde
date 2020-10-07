@@ -1,17 +1,18 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-
 final int DESIRED_FRAMERATE = 30;
 final String IMAGES_DIR = "C:/Users/thevg/Pictures/Wallpapers/Spaceships";
 final String IMAGES_LIST_FILE = "";
 final boolean CYCLE = true;
+final boolean UPSCALE = true;
 int imagesListFileSize = 0;
+
+PImage scaledPixels;
+float timeToScale = 0;
 
 String startImgName;
 String endImgName;
 PImage startImg;
 PImage endImg;
-int totalSize;
+int workingWidth, workingHeight, totalWorkingSize;
 int numToCheck;
 
 int processIndex = 0;
@@ -35,24 +36,29 @@ final int totalFadeFrames = DESIRED_FRAMERATE * 3;
 final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 
 void setup() {
-  //size(1600, 900);
-  size(800, 450);
+  //fullScreen();
+  size(1600, 900);
+  //size(800, 450);
   //size(800, 600);
   //size(400, 225);
   //size(200, 100);
   frameRate(DESIRED_FRAMERATE);
   colorMode(HSB);
-  totalSize = width * height;
-  numToCheck = round(sqrt(totalSize));//500;
+  
+  workingWidth = 800;
+  workingHeight = 450;
+  totalWorkingSize = workingWidth * workingHeight;
+  numToCheck = round(sqrt(totalWorkingSize));//500;
   
   startImgName = getRandomImage("");
   endImgName = getRandomImage(startImgName);
   startImg = loadImageAndResize(startImgName);
   endImg = loadImageAndResize(endImgName);
+  scaledPixels = createImage(workingWidth, workingHeight, HSB);
   
-  newOrder = new int[totalSize];
-  processOrder = new int[totalSize];
-  for(int i = 0; i < totalSize; i++) {
+  newOrder = new int[totalWorkingSize];
+  processOrder = new int[totalWorkingSize];
+  for(int i = 0; i < totalWorkingSize; i++) {
     newOrder[i] = -1;
     processOrder[i] = i;
   }
@@ -61,7 +67,7 @@ void setup() {
 
 PImage loadImageAndResize(String name) {
   PImage img = loadImage(name);
-  img.resize(width, height);
+  img.resize(workingWidth, workingHeight);
   return img;
 }
 
@@ -77,7 +83,7 @@ String getRandomImage(String exclude) {
     try {
       BufferedReader reader;
       if(imagesListFileSize == 0) {
-        reader = new BufferedReader(new FileReader(IMAGES_LIST_FILE));
+        reader = createReader(IMAGES_LIST_FILE);
         while(reader.readLine() != null)
           imagesListFileSize++;
         reader.close();
@@ -85,7 +91,7 @@ String getRandomImage(String exclude) {
       String result = "";
       do {
         int line = (int)random(0, imagesListFileSize);
-        reader = new BufferedReader(new FileReader(IMAGES_LIST_FILE));
+        reader = createReader(IMAGES_LIST_FILE);
         for(int i = 0; i < line; i++) {
           result = reader.readLine(); 
         }
@@ -98,16 +104,17 @@ String getRandomImage(String exclude) {
 }
 
 void mouseClicked() {
-  if(fadeFrame == 0) {
+  if(delayFrame == 0) {
     animationFrame = 0;
-    delayFrame = 0;
   }
   record = false;
 }
 
 void draw() {
-  if(processIndex < totalSize) {
-    background(startImg);
+  if(processIndex < totalWorkingSize) {
+    background(0);
+    tint(255);
+    image(startImg, 0, 0);
     analyzeStartImage(true);
     showAnalysisText();
     averageProcessed = increaseAverage(
@@ -117,23 +124,27 @@ void draw() {
     lastProcessIndex = processIndex;
   } else if(animationFrame <= totalAnimationFrames) {
     float frac = (float)animationFrame / totalAnimationFrames;
+    background(0);
     fadeToBlack(startImg, frac);    
     animatePixels(frac);
     animationFrame++; 
     if(record) saveFrame(recordingFilename);
+    if(animationFrame > totalAnimationFrames) startImg = get(0, 0, workingWidth, workingHeight);
   } else if(!CYCLE) {
     return;
   } else if(delayFrame < totalDelayFrames) {
-    delayFrame++; 
+    background(0);
+    tint(255, 255);
+    image(startImg, 0, 0);
+    delayFrame++;
   } else if(fadeFrame < totalFadeFrames) {
-    if(fadeFrame == 0) {
-      startImg = get(0, 0, width, height);
-    } else {
-      float frac = (float)fadeFrame / totalFadeFrames;
-      fadeToImage(startImg, endImg, frac);
-    }
+    float frac = (float)fadeFrame / totalFadeFrames;
+    background(0);
+    fadeToImage(startImg, endImg, frac);
     fadeFrame++;
   } else {
+    background(0);
+    image(endImg, 0, 0);
     startImgName = endImgName;
     startImg = endImg;
     //startImg = loadImage("orange.jpg");
@@ -149,12 +160,19 @@ void draw() {
     delayFrame = 0;
     fadeFrame = 0;
   }
+  if(UPSCALE && workingWidth < width) {
+    long startTime = System.currentTimeMillis();
+    scaledPixels = get(0, 0, workingWidth, workingHeight);
+    scaledPixels.resize(width, height);
+    background(scaledPixels);
+    timeToScale = increaseAverage(timeToScale, frameCount, System.currentTimeMillis() - startTime);
+  }
 }
 
 void analyzeStartImage(boolean highlightPixels) {
   long startTime = System.currentTimeMillis();
-  while(System.currentTimeMillis() - startTime < 1000f/DESIRED_FRAMERATE &&
-        processIndex < totalSize) {
+  while(System.currentTimeMillis() - startTime < 1000f/DESIRED_FRAMERATE - timeToScale &&
+        processIndex < totalWorkingSize) {
           
     int index = processIndex;//processOrder[processIndex];
     findBestFit(index);
@@ -169,9 +187,9 @@ void analyzeStartImage(boolean highlightPixels) {
 }
 
 void showAnalysisText() {
-  float percent = ((float)processIndex / totalSize) * 100;
+  float percent = ((float)processIndex / totalWorkingSize) * 100;
   String titles = "analyzed:\nper frame:\npercent:\nframerate:";
-  String values = processIndex + "/" + totalSize + "\n"
+  String values = processIndex + "/" + totalWorkingSize + "\n"
                   + round(averageProcessed) + "\n"
                   + round(percent*10)/10f + "\n"
                   + round(frameRate*10)/10f;
@@ -181,13 +199,12 @@ void showAnalysisText() {
 }
 
 void fadeToBlack(PImage back, float frac) {
-  background(back);
-  fill(0, 0, 0, frac * 255);
-  rect(0, 0, width, height);
+  tint(255, (1-frac) * 255);
+  image(back, 0, 0);
 }
 
 void animatePixels(float frac) {
-  for(int i = 0; i < totalSize; i++) {
+  for(int i = 0; i < totalWorkingSize; i++) {
     int[] destination = getCoords(processOrder[i]);
     int[] beginning = getCoords(newOrder[processOrder[i]]);
     set(
@@ -215,7 +232,7 @@ void findBestFit(int index) {
   int bestFitIndex = -1;
   float bestFitValue = 9999999f;
   
-  int startingIndex = (int)random(totalSize - numToCheck);
+  int startingIndex = (int)random(totalWorkingSize - numToCheck);
   for(int i = startingIndex; i < startingIndex + numToCheck; i++) {
     int curIndex = processOrder[i];
     color cur = startImg.pixels[curIndex];
@@ -235,7 +252,7 @@ int calculateFit(int targetHue, int targetSat, int targetBrt, color test) {
 }
 
 int[] getCoords(int index) {
-   return new int[]{index % width, index / width};
+   return new int[]{index % workingWidth, index / workingWidth};
 }
 
 void randomizeArrayOrder(int[] array) {
