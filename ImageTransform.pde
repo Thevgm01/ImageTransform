@@ -17,9 +17,9 @@ final boolean ignoreBlack = true;
 final boolean preAnimate = true; //Dramatically slows loading speed, but required for maintaining high framerate at large resolutions
 final boolean cycle = true;
 
-// ANALYSIS //
+// UI //
 final boolean showCalculatedPixels = false;
-final boolean showAnalysisText = false;
+final boolean showAnalysisText = true;
 final boolean showProgress = true;
 final boolean showProgressBar = false;
 final boolean showProgressBorder = true;
@@ -35,6 +35,14 @@ PImage nextImg;
 PImage nextImgSmall;
 PImage assembledImg;
 PImage[] animationFrames;
+
+boolean legacyAnalysis = false;
+boolean defaultLegacyAnalysis = legacyAnalysis;
+final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
+
+ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> startImage_HSB_cube;
+final int HSB_CUBE_SIZE = 64;
+final int HSB_CUBE_COLOR_DEPTH_SCALE = 256 / HSB_CUBE_SIZE;
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
@@ -52,7 +60,7 @@ int averageTrackerStartFrame = 0;
 long averageTrackerStartTime = 0;
 float averageTracker;
 float progressSlide = 0f;
-float progressSlideSpeed = PI / TOTAL_DELAY_FRAMES / 2f;
+float progressSlideSpeed = PI / DESIRED_FRAMERATE;
 
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
@@ -81,6 +89,17 @@ void setup() {
   startIndexesRandomized = new int[TOTAL_SIZE];
   newOrder = new int[TOTAL_SIZE];
 
+  startImage_HSB_cube = new ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>();
+  for(int i = 0; i < HSB_CUBE_SIZE; i++) {
+    startImage_HSB_cube.add(new ArrayList<ArrayList<ArrayList<Integer>>>());
+    for(int j = 0; j < HSB_CUBE_SIZE; j++) {
+      startImage_HSB_cube.get(i).add(new ArrayList<ArrayList<Integer>>());
+      for(int k = 0; k < HSB_CUBE_SIZE; k++) {
+        startImage_HSB_cube.get(i).get(j).add(new ArrayList<Integer>());
+      }
+    }
+  }
+
   analyzeIndexes = new int[NUM_THREADS];
   animationIndexes = new int[NUM_THREADS];
   if(preAnimate) animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
@@ -98,6 +117,12 @@ void mouseClicked() {
   record = false;
 }
 
+void keyPressed() {
+  if(key == 'a') {
+    resetAll(); 
+  }
+}
+
 void draw() {
   int numAnalyzed = 0, numAnimated = 0;
   for(int i = 0; i < NUM_THREADS; i++) {
@@ -106,7 +131,7 @@ void draw() {
   }
   
  switch(curState) {
-    case 0:
+    case 0: // Determine where pixels in the start image should end up
       boolean stillProcessing = numAnalyzed < TOTAL_SIZE,
               initializeAnimationFrame = preAnimate && animationInitializer < TOTAL_ANIMATION_FRAMES;
       if(stillProcessing || initializeAnimationFrame) {
@@ -120,6 +145,10 @@ void draw() {
             initializeAnimationFrame = false;
         }
         background(startImg);
+        if(SWITCH_TO_LEGACY_ON_SLOWDOWN && !legacyAnalysis && averageTracker > 0 && averageTracker < 500) {
+          legacyAnalysis = true;
+          resetAll();
+        }
         moveProgressBar(progressSlideSpeed);
       } else {
         background(startImg);
@@ -133,7 +162,7 @@ void draw() {
       }
       showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
       break;
-    case 1:
+    case 1: // Actively animate the transition
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
         float frac = (float)curFrame / TOTAL_ANIMATION_FRAMES;
         fadeToBlack(startImg, frac);
@@ -147,15 +176,16 @@ void draw() {
         curFrame = 0;
         curState += 3;
       } break;
-    case 2:
+    case 2: // Animate the transition in the background, storing the frames for later
       if(numAnimated < TOTAL_SIZE) {
         background(startImg);
         //Fix this :)
+        moveProgressBar(progressSlideSpeed);
         showAllInfo(numAnimated, TOTAL_SIZE, "Pixels animated");
       } else {
         curState++;
       } break;
-    case 3:
+    case 3: // Play the pre-animated transition as a sort of movie
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
         background(animationFrames[curFrame]);
         curFrame++; 
@@ -165,7 +195,7 @@ void draw() {
         curFrame = 0;
         curState++;
       } break;
-    case 4:
+    case 4: // Pause for a moment to show the assembled image, then start loading the next image in the background
       if(curFrame < TOTAL_DELAY_FRAMES) {
         curFrame++;
       } else { 
@@ -174,7 +204,7 @@ void draw() {
         curFrame = 0;
         curState++;
       } break;
-    case 5:
+    case 5: // Fade gently between the assembled image and the true final image
       if(curFrame < TOTAL_FADE_FRAMES) {
         float frac = (float)curFrame / TOTAL_FADE_FRAMES;
         fadeToImage(assembledImg, endImg, frac);
@@ -183,7 +213,7 @@ void draw() {
         curFrame = 0;
         curState++;
       } break;
-    case 6:
+    case 6: // Pause for a moment on the final image, then restart the cycle
       background(endImg);
       if(curFrame < TOTAL_DELAY_FRAMES) {
         moveProgressBar(progressSlideSpeed);
@@ -205,6 +235,9 @@ void draw() {
       
       numAnalyzed = 0;
       numAnimated = 0;
+      
+      legacyAnalysis = defaultLegacyAnalysis;
+      
       resetAll();
   }
   if(showProgress) showProgress(numAnalyzed, numAnimated);
@@ -229,9 +262,11 @@ void resetAll() {
   for(int i = 0; i < NUM_THREADS; i++) {
     analyzeIndexes[i] = 0;
     animationIndexes[i] = 0;
-    thread("analyzeStartImage" + i);
   }
   animationInitializer = 0;
+
+  if(legacyAnalysis) analyzeStartImage_legacy();
+  else analyzeStartImage();
   
   resetAnimator();
   
@@ -262,114 +297,4 @@ void randomizeImage(color[] start, color[] end, int[] order) {
     order[index] = order[i];
     order[i] = a;
   }
-}
-
-void showAllInfo(int cur, int max, String label) {
-  if(showCalculatedPixels && curState == 0) {
-    noStroke();
-    fill(255);
-    int topOfRectangle = averageTrackerLastValue / width;
-    rect(0, topOfRectangle, width, 1 + cur / width - topOfRectangle);
-  }
-  if(showAnalysisText) {
-    showAnalysisText(cur, max, label);
-  }
-  if(showNextImage) {
-    tint(255, 220);
-    image(nextImgSmall, width - nextImgSmall.width, 0);
-  }  
-  advanceAverageTracker(cur);
-}
-
-void showAnalysisText(int cur, int max, String label) {  
-  String titles = label + "\n" + cur + "/" + max
-                  + "\npercent:\nper frame:\nseconds:\nper second:\nframerate:";
-  String values = "\n\n"
-                  + round(((float)cur / max) * 1000)/10f + "\n"
-                  + round(averageTracker) + "\n"
-                  + (((float)millis() - averageTrackerStartTime)/1000f) + "\n"
-                  + round(averageTracker * DESIRED_FRAMERATE) + "\n"
-                  + round(frameRate*10)/10f;
-  fill(255);
-  text(titles, 5, 15);
-  text(values, 75, 15);
-}
-
-void showProgress(int numAnalyzed, int numAnimated) {
-  float frac = (float)numAnalyzed / TOTAL_SIZE;
-  if(preAnimate && curState <= 3) frac = (
-    (float)numAnalyzed / TOTAL_SIZE +
-    (float)numAnimated / TOTAL_SIZE)/2f;
-  else if(curState > 3)
-    frac = 0f;
-    
-  if(showProgressBar) showProgressBar(frac);
-  if(showProgressBorder) showProgressBorder(frac);
-}
-
-void moveProgressBar(float amount) {
-  progressSlide -= amount;
-  if(progressSlide < 0) progressSlide = 0;
-  else if(progressSlide > PI) progressSlide = PI;
-}
-
-void showProgressBar(float frac) {
-  final int barHeight = height/50;
-  final int sideDistance = width/60;
-  final int borderThickness = 2;
-  
-  int x = sideDistance, w = width - sideDistance*2,
-      y = height - sideDistance - barHeight, h = barHeight;
-      
-  float animationY = (cos(progressSlide) - 1f) * (barHeight + sideDistance + borderThickness)/2f;
-  
-  if(y + animationY < height) {
-    noFill();
-    stroke(255);
-    strokeWeight(borderThickness);
-    rect(x, y - animationY, w, h);
-    fill(255);
-    noStroke();
-    rect(x, y - animationY, w*frac, h);
-  }
-}
-
-void showProgressBorder(float frac) {
-  float progressSlideMult = (cos(progressSlide) + 1f) / 2f;
-  stroke(255);
-  strokeWeight(3f);
-  //strokeWeight(progressSlideMult * 3f);
-  frac *= progressSlideMult;
-  
-  if(frac == 0) return;
-  int perimeterSize = WIDTH + HEIGHT;
-  int perimeter = round(perimeterSize * frac);
-  
-  if(perimeter > HALF_WIDTH + HEIGHT) {
-    line(0, HEIGHT - 1, perimeter - HALF_WIDTH - HEIGHT, HEIGHT - 1);
-    line(WIDTH + HALF_WIDTH + HEIGHT - perimeter, HEIGHT - 1, WIDTH, HEIGHT - 1); 
-  }
-  if(perimeter > HALF_WIDTH) {
-    line(0, 0, 0, perimeter - HALF_WIDTH);
-    line(WIDTH - 1, 0, WIDTH - 1, perimeter - HALF_WIDTH);
-  }
-  if(perimeter > 0) {
-    line(HALF_WIDTH - perimeter, 0, HALF_WIDTH + perimeter, 0);
-  }
-}
-
-void advanceAverageTracker(int nextVal) {
-  increaseAverage(nextVal);
-  averageTrackerLastValue = nextVal;
-}
-
-void resetAverage() {
-  averageTrackerLastValue = 0;
-  averageTrackerStartFrame = frameCount;
-  averageTrackerStartTime = millis();
-  averageTracker = 0;
-}
-
-void increaseAverage(float value) {
-  averageTracker += (value - averageTrackerLastValue - averageTracker)/(frameCount - averageTrackerStartFrame + 1);
 }

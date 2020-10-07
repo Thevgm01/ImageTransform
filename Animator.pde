@@ -96,8 +96,8 @@ void initializeAnimator() {
 void resetAnimator() {
   
   do curAnimation = (int)random(NUM_ANIMATIONS);
-  while(
-       curAnimation == ANIMATION_FALLING_SAND
+  while(false
+    || curAnimation == ANIMATION_FALLING_SAND
     || curAnimation == ANIMATION_ELLIPSE 
   );
   
@@ -112,6 +112,7 @@ void resetAnimator() {
   
   // OVERRIDES //
   //curAnimation = ANIMATION_EVAPORATE;
+  //curAnimation = ANIMATION_FALLING_SAND;
   //easeMethodX = 2;
 }
 
@@ -296,9 +297,9 @@ void animatePixel_burstPhysics(int[] coords) {
   float newY = coords[Y1];
   //float startAngle = random(0, TWO_PI);
   //float startVel = abs(randomGaussian()) / 20f;
-  float startVel = random(0.01f, 0.1f);
+  float startVel = random(0.05f, 0.1f);
   //float gravity = 0.1f;
-  float gravity = random(0.1f, 0.2f);
+  float gravity = random(0.18f, 0.2f);
   //float gravity = noiseTable[coords[Y1]][coords[X1]] / 5f;
   float xVel = startVel * ((coords[X1] - HALF_WIDTH) / 5f);// + cos(startAngle));
   float yVel = startVel * ((coords[Y1] - HALF_HEIGHT) / 5f);// + sin(startAngle));
