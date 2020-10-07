@@ -9,9 +9,12 @@ int imagesListFileSize = 0;
 
 String startImgName;
 String endImgName;
+String nextImgName;
 PImage startImg;
 PImage endImg;
-PImage assembledImage;
+PImage nextImg;
+PImage nextImgSmall;
+PImage assembledImg;
 int totalSize;//The size of the window, width * height
 int numToCheck;//Check this many pixels from the original image
 
@@ -43,12 +46,18 @@ void setup() {
   frameRate(DESIRED_FRAMERATE);
   colorMode(HSB);
   totalSize = width * height;
-  numToCheck = 1000;//round(sqrt(totalSize));
+  numToCheck = 2000;//round(sqrt(totalSize));
   
   startImgName = getRandomImageName("");
   endImgName = getRandomImageName(startImgName);
-  startImg = loadImageAndResize(startImgName);
-  endImg = loadImageAndResize(endImgName);
+  startImg = loadImage(startImgName);
+  endImg = loadImage(endImgName);
+  nextImgSmall = endImg.copy();
+  resizeImage(startImg, width, height);
+  resizeImage(endImg, width, height);
+  resizeImage(nextImgSmall, width/4, height/3);
+  startImg = imageOnBlack(startImg);
+  endImg = imageOnBlack(endImg);
   
   processIndex = new int[PROCESS_THREADS];
   newOrder = new int[totalSize];
@@ -93,14 +102,23 @@ String getRandomImageName(String exclude) {
   return null;
 }
 
-PImage loadImageAndResize(String name) {
-  PImage img = loadImage(name);
-  img.resize(width, 0); 
-  if(img.height > height) img.resize(0, height); 
+void loadNextImage() {
+  nextImgName = getRandomImageName(endImgName);
+  nextImg = loadImage(nextImgName);
+  nextImgSmall = nextImg.copy();
+  resizeImage(nextImg, width, height);
+  resizeImage(nextImgSmall, width/4, height/3);
+}
+
+void resizeImage(PImage img, int w, int h) {
+  img.resize(w, 0); 
+  if(img.height > h) img.resize(0, h);
+}
+
+PImage imageOnBlack(PImage img) {
   background(0);
   image(img, width/2 - img.width/2, height/2 - img.height/2);
-  img = get(0, 0, width, height);
-  return img;
+  return get(0, 0, width, height);
 }
 
 void mouseClicked() {
@@ -120,7 +138,9 @@ void draw() {
       noStroke();
       fill(255);
       int topOfRectangle = lastProcessIndex / width;
-      rect(0, topOfRectangle, width, numProcessed / width - topOfRectangle);
+      rect(0, topOfRectangle, width, 1 + numProcessed / width - topOfRectangle);
+      tint(255, 220);
+      image(nextImgSmall, width - nextImgSmall.width, 0);
     }
     if(showAnalysisText) {
       showAnalysisText(numProcessed);
@@ -142,17 +162,24 @@ void draw() {
     delayFrame++; 
   } else if(fadeFrame < totalFadeFrames) {
     if(fadeFrame == 0) {
-      assembledImage = get(0, 0, width, height);
+      assembledImg = get(0, 0, width, height);
+      if(nextImg == null) thread("loadNextImage");
     } else {
       float frac = (float)fadeFrame / totalFadeFrames;
-      fadeToImage(assembledImage, endImg, frac);
+      fadeToImage(assembledImg, endImg, frac);
     }
     fadeFrame++;
   } else {
+    if(nextImg == null){
+      //println("Next image not loaded");
+      return;
+    }
+    
     startImgName = endImgName;
     startImg = endImg;
-    endImgName = getRandomImageName(startImgName);
-    endImg = loadImageAndResize(endImgName);
+    endImgName = nextImgName;
+    endImg = imageOnBlack(nextImg);
+    nextImg = null;
     
     resetAll();
   }
@@ -201,7 +228,7 @@ void findBestFit(int index) {
 int calculateFit(int targetHue, int targetSat, int targetBrt, color test) {
   return abs(targetHue - (test >> HUE & 0xff)) +
          abs(targetSat - (test >> SATURATION & 0xff)) +
-         abs(targetBrt - (test >> BRIGHTNESS & 0xff));//(cur >> BRIGHTNESS & 0xff)
+         abs(targetBrt - (test >> BRIGHTNESS & 0xff));//(cur & 0xff)
 }
 
 void showAnalysisText(int numProcessed) {
@@ -227,10 +254,10 @@ void animatePixels(float frac) {
     //int posX = (int)((destX - startX) * frac);
     //int posY = (int)((destY - startY) * frac);
     float logFrac = frac * 30f - 15f;
-    int posX = round(logisticFunc(logFrac, destX - startX, 0.5f));
-    int posY = round(logisticFunc(logFrac, destY - startY, 0.5f));
+    int deltaX = round(logisticFunc(logFrac, destX - startX, 0.65f));
+    int deltaY = round(logisticFunc(logFrac, destY - startY, 0.65f));
     color col = startImg.pixels[index1];
-    set(posX + startX, posY + startY, col);
+    set(startX + deltaX, startY + deltaY, col);
   }
 }
 
