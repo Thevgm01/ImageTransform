@@ -1,25 +1,44 @@
 import java.util.*;
+
+// INITIALIZATION //
+final boolean FULLSCREEN = false;
+final int //WIDTH = 1920, HEIGHT = 1080;
+          WIDTH = 1600, HEIGHT = 900;
+          //WIDTH = 800, HEIGHT = 450;
+final int TOTAL_SIZE = WIDTH * HEIGHT;
 final int DESIRED_FRAMERATE = 60;
 final int NUM_THREADS = 6;//The number of threads, up to 8
-final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 3;//4;
 final int TOTAL_DELAY_FRAMES = DESIRED_FRAMERATE / 2;
 final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 2;//3;
-final String IMAGES_DIR = "";//"C:/Users/thevg/Desktop/Processing/Projects/Images/Spaceships";
-                          //"C:/Users/thevg/Pictures/Makoto Niijima Archive";
-final String IMAGES_LIST_FILE = "C:/Users/thevg/Pictures/Wallpapers/list.txt";
-final boolean preAnimate = true;
+final String IMAGES_DIR =
+"";
+//"C:/Users/thevg/Desktop/Processing/Projects/Images/Spaceships";
+//"C:/Users/thevg/Pictures/Makoto Niijima Archive";
+final String IMAGES_LIST_FILE = 
+//"";
+"C:/Users/thevg/Pictures/Wallpapers/list.txt";
+int imagesListFileSize = 0;
+
+// CONSTANTS //
+final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
+
+// CONFIGURATION //
+final int[] sortOrder = new int[]{ HUE, SATURATION, BRIGHTNESS };
+final boolean randomizePixelPool = true; //May slightly reduce loading speed
+final boolean preAnimate = true; //Reduces loading speed, but required for higher resolutions/framerates
 final boolean cycle = true;
-final boolean showCalculatedPixels = false;
-final boolean showAnalysisText = false;
-final boolean showProgressBar = true;
-final boolean showNextImage = false;
 final float logSlope = 30f;
 final float logMultX = 1;
 final float logMultY = 1;
 
-int imagesListFileSize = 0;
+// ANALYSIS //
+final boolean showCalculatedPixels = false;
+final boolean showAnalysisText = false;
+final boolean showProgressBar = true;
+final boolean showNextImage = false;
 
+// IMAGES IN MEMORY //
 String startImgName;
 String endImgName;
 String nextImgName;
@@ -28,8 +47,7 @@ PImage endImg;
 PImage nextImg;
 PImage nextImgSmall;
 PImage assembledImg;
-int totalSize;//The size of the window, width * height
-int numToCheck;//Check this many pixels from the original image
+PImage[] animationFrames;
 
 TreeSet<ColorNode> sortedPixels;
 int sortIndex;
@@ -38,7 +56,6 @@ int[] newOrder;//Where each pixel in the final arrangement originally comes from
 
 int animationInitializer;
 int[] animationIndexes;
-PImage[] animationFrames;
 
 int curState;
 int curFrame;
@@ -52,16 +69,14 @@ float progressBarSlideSpeed = 0.1f;
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
 
+void settings() {
+  if(FULLSCREEN) fullScreen();
+  else size(WIDTH, HEIGHT); 
+}
+
 void setup() {
-  //fullScreen();
-  size(1600, 900);
-  //size(800, 450);
-  //size(400, 225);
-  //size(200, 100);
   frameRate(DESIRED_FRAMERATE);
   colorMode(HSB);
-  totalSize = width * height;
-  numToCheck = 750;//round(sqrt(totalSize));
   
   startImg = null;
   endImg = null;
@@ -80,7 +95,7 @@ void setup() {
   endImg = imageOnBlack(endImg);
   
   sortedPixels = new TreeSet<ColorNode>();
-  newOrder = new int[totalSize];
+  newOrder = new int[TOTAL_SIZE];
   animationIndexes = new int[NUM_THREADS];
   if(preAnimate) animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
   
@@ -120,7 +135,7 @@ String getRandomImageName(String exclude) {
 
 void loadNextImage() {
   nextImg = null;
-  while(nextImg == null) {
+  while(nextImg == null || nextImg.width < 0 || nextImg.height < 0) {
     nextImgName = getRandomImageName(endImgName);
     nextImg = loadImage(nextImgName);
   }
@@ -155,7 +170,7 @@ void draw() {
 
   switch(curState) {
     case 0:
-      boolean stillProcessing = sortIndex + analyzeIndex < totalSize * 2,
+      boolean stillProcessing = sortIndex + analyzeIndex < TOTAL_SIZE * 2,
               initializeAnimationFrame = preAnimate && animationInitializer < TOTAL_ANIMATION_FRAMES;
       if(stillProcessing || initializeAnimationFrame) {
         while(initializeAnimationFrame) {
@@ -168,7 +183,7 @@ void draw() {
             initializeAnimationFrame = false;
         }
         background(startImg);
-        showAllInfo(sortIndex + analyzeIndex, totalSize * 2, "Pixels analyzed");
+        showAllInfo(sortIndex + analyzeIndex, TOTAL_SIZE * 2, "Pixels analyzed");
         moveProgressBar(progressBarSlideSpeed);
       } else {
         background(startImg);
@@ -257,21 +272,25 @@ void draw() {
 }
 
 void analyzeStartImage() {
-  while(sortIndex < totalSize) {
-    ColorNode cn = new ColorNode(startImg.pixels[sortIndex], sortIndex);
-    sortedPixels.add(cn);
+  while(sortIndex < TOTAL_SIZE) {
+    ColorNode colorNode = new ColorNode(startImg.pixels[sortIndex], sortIndex);
+    ColorNode existingNode = sortedPixels.floor(colorNode);
+    if(randomizePixelPool && colorNode.equals(existingNode))
+      existingNode.indexes.add(sortIndex);
+    else
+      sortedPixels.add(colorNode);
     sortIndex++; 
   }
-  while(analyzeIndex < totalSize) {
+  while(analyzeIndex < TOTAL_SIZE) {
     ColorNode cn = new ColorNode(endImg.pixels[analyzeIndex], analyzeIndex),
               floor = sortedPixels.floor(cn),
               ceiling = sortedPixels.ceiling(cn);
     if(floor == null) 
-      newOrder[analyzeIndex] = ceiling.index;
-    else if(ceiling == null || abs(cn.sum - floor.sum) <= abs(cn.sum - ceiling.sum))
-      newOrder[analyzeIndex] = floor.index;
+      newOrder[analyzeIndex] = ceiling.randomIndex();
+    else if(ceiling == null || abs(cn.sum - floor.sum) < abs(cn.sum - ceiling.sum))
+      newOrder[analyzeIndex] = floor.randomIndex();
     else
-      newOrder[analyzeIndex] = ceiling.index;
+      newOrder[analyzeIndex] = ceiling.randomIndex();
     analyzeIndex++;
   }
 }
@@ -294,7 +313,7 @@ void createAnimationFrames(int offset) {
 }
 
 void createAnimationFrame(color[] localPixels, float frac) {  
-  for(int index0 = 0; index0 < totalSize; index0++) {
+  for(int index0 = 0; index0 < TOTAL_SIZE; index0++) {
     int index1 = newOrder[index0];
     int startX = index1 % width,
         startY = index1 / width,
@@ -396,7 +415,7 @@ void moveProgressBar(float amount) {
 void showProgressBar(int numAnimated) {
   float frac;
   if(curState <= 3) frac =
-    ((sortIndex + analyzeIndex) / (totalSize * 2f) +
+    ((sortIndex + analyzeIndex) / (TOTAL_SIZE * 2f) +
     (float)numAnimated / TOTAL_ANIMATION_FRAMES)/2f;
   else frac = 0;
         
