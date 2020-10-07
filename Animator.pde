@@ -94,15 +94,12 @@ void initializeAnimator() {
 }
 
 void resetAnimator() {
-    
-  curAnimation = (int)random(NUM_ANIMATIONS);
-  curAnimation = ANIMATION_FALLING_SAND;
-  //curAnimation = ANIMATION_LASER;
   
-  while(curAnimation == ANIMATION_FALLING_SAND
-  //   || curAnimation == ANIMATION_ELLIPSE 
-       || curAnimation == ANIMATION_EVAPORATE 
-        ) curAnimation = (int)random(NUM_ANIMATIONS);
+  do curAnimation = (int)random(NUM_ANIMATIONS);
+  while(
+       curAnimation == ANIMATION_FALLING_SAND
+    || curAnimation == ANIMATION_ELLIPSE 
+  );
   
   easeMethodX = (int)random(3);
   do easeMethodY = (int)random(3);
@@ -112,6 +109,10 @@ void resetAnimator() {
   
   startFrame = 0;
   usingStoredCoords = false;
+  
+  // OVERRIDES //
+  //curAnimation = ANIMATION_EVAPORATE;
+  //easeMethodX = 2;
 }
 
 float getTrigTable(float[] table, float angle) {
@@ -558,14 +559,25 @@ void animatePixel_laser(int[] coords) {
 }
 
 void animatePixel_evaporate(int[] coords) {
-  float newX, newY;
+  float newX = coords[X1], newY = coords[Y1];
   
-  float timeToFinish = 0.2f;
-  int framesToFinish = (int)(TOTAL_ANIMATION_FRAMES * timeToFinish);
+  int pixelDistance = coords[Y2] - coords[Y1] + HEIGHT;
+  float speed = 30;
+  int framesToFinish = (int)((float)pixelDistance / speed);
   int startFrame = (int)random(TOTAL_ANIMATION_FRAMES - framesToFinish);
+  //float timeToFinish = 0.2f;
+  //int framesToFinish = (int)(TOTAL_ANIMATION_FRAMES * timeToFinish);
+  //int startFrame = (int)random(TOTAL_ANIMATION_FRAMES - framesToFinish);
   
-  for(int frame = startFrame; frame < startFrame + framesToFinish; frame++) {
-     
+  //for(int frame = startFrame; frame < startFrame + framesToFinish; frame++) {
+  for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {
+    newY = lerp(coords[Y1], coords[Y2] - HEIGHT, easing[frame][DEFAULT]);
+    while(newY < 0) {
+      newY += HEIGHT - 1;
+      newX = coords[X2];
+    }
+    //newX = lerp(coords[X1], coords[X2], easing[frame][DEFAULT]);
+    plot(newX, newY, coords[COLOR], frame);
   }
 }
 

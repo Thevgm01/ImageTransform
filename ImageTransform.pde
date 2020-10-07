@@ -342,15 +342,19 @@ void showProgressBorder(float frac) {
   frac *= progressSlideMult;
   
   if(frac == 0) return;
+  int perimeterSize = WIDTH + HEIGHT;
+  int perimeter = round(perimeterSize * frac);
   
-  line(-frac * 3f/2f * width + HALF_WIDTH, 0, frac * 3f/2f * width + HALF_WIDTH, 0);
-  if(frac >= 0.33f) {
-    line(0, 0, 0, (frac - 0.33f) * 3f * height);
-    line(width - 1, 0, width - 1, (frac - 0.33f) * 3f * height);
+  if(perimeter > HALF_WIDTH + HEIGHT) {
+    line(0, HEIGHT - 1, perimeter - HALF_WIDTH - HEIGHT, HEIGHT - 1);
+    line(WIDTH + HALF_WIDTH + HEIGHT - perimeter, HEIGHT - 1, WIDTH, HEIGHT - 1); 
   }
-  if(frac >= 0.67f) {
-    line(0, height - 1, (frac - 0.67f) * 3.1f/2f * width, height - 1);
-    line(-(frac - 0.67f) * 3.1f/2 * width + width, height - 1, width, height - 1);
+  if(perimeter > HALF_WIDTH) {
+    line(0, 0, 0, perimeter - HALF_WIDTH);
+    line(WIDTH - 1, 0, WIDTH - 1, perimeter - HALF_WIDTH);
+  }
+  if(perimeter > 0) {
+    line(HALF_WIDTH - perimeter, 0, HALF_WIDTH + perimeter, 0);
   }
 }
 
