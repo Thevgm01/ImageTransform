@@ -2,18 +2,18 @@ final int desiredFramerate = 30;
 
 PImage startImg;
 PImage endImg;
-final int colorRange = 256;
 int totalSize;
-ArrayList<ArrayList<ColorIndex>> colorsByHue;
+final float fractionToCheck = 0.001f;
 
 String frameName = "frames/frame_#####";
 
 int[] processOrder;//Look at the pixels of the final image in this order
-int[] newOrder;//The order of pixels (starting image) to resemble the final image
+int[] newOrder;//Where each pixel in the final version comes from
 int processIndex = 0;
 
-int animationFrames = 0;
+int animationFrame = 0;
 final int totalAnimationFrames = desiredFramerate * 4;
+boolean record = false;
 
 final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 
@@ -23,11 +23,11 @@ void setup() {
   //size(400, 225);
   //size(200, 100);
   frameRate(desiredFramerate);
-  colorMode(HSB, colorRange);
+  colorMode(HSB);
   totalSize = width * height;
 
-  startImg = loadImage("spaceship.jpg");
-  endImg = loadImage("cat.jpg");
+  startImg = loadImage("rainbow.jpg");
+  endImg = loadImage("spaceship.jpg");
   startImg.resize(width, height);
   endImg.resize(width, height);
   
@@ -38,16 +38,11 @@ void setup() {
     processOrder[i] = i;
   }
   randomizeArrayOrder(processOrder);
-  
-  colorsByHue = new ArrayList<ArrayList<ColorIndex>>();
-  for(int i = 0; i < colorRange; i++) {
-    colorsByHue.add(new ArrayList<ColorIndex>()); 
-  }
-  for(int i = 0; i < totalSize; i++) {
-    int index = processOrder[i];
-    color cur = startImg.pixels[index];
-    colorsByHue.get(cur >> HUE & 0xff).add(new ColorIndex(cur, index));
-  }
+}
+
+void mouseClicked() {
+  animationFrame = 0;
+  record = false;
 }
 
 void draw() {
@@ -57,7 +52,7 @@ void draw() {
     while(System.currentTimeMillis() - startTime < desiredFramerate &&
           processIndex < totalSize) {
             
-      int index = processOrder[processIndex];
+      int index = processIndex;//processOrder[processIndex];
       findBestFit(index);
       
       int[] curPixel = getCoords(index);
@@ -72,19 +67,23 @@ void draw() {
                     + round(frameRate*10)/10f;
     text(titles, 0, 10);
     text(values, 60, 10);
-  } else if(animationFrames <= totalAnimationFrames) {
-    background(0);
-    float frac = (float)animationFrames / totalAnimationFrames;
+  } else if(animationFrame <= totalAnimationFrames) {
+    float frac = (float)animationFrame / totalAnimationFrames;
+    
+    background(startImg);
+    fill(0, 0, 0, frac * 255);
+    rect(0, 0, width, height);
+    
     for(int i = 0; i < totalSize; i++) {
-      int[] beginning = getCoords(processOrder[i]);
-      int[] destination = getCoords(newOrder[processOrder[i]]);
+      int[] destination = getCoords(processOrder[i]);
+      int[] beginning = getCoords(newOrder[processOrder[i]]);
       set(
         (int)lerp(beginning[0], destination[0], frac),
         (int)lerp(beginning[1], destination[1], frac),
-        startImg.pixels[processOrder[i]]);
+        startImg.pixels[newOrder[processOrder[i]]]);
     }
-    saveFrame(frameName);
-    animationFrames++; 
+    if(record) saveFrame(frameName);
+    animationFrame++; 
   }
 }
 
@@ -96,30 +95,21 @@ void findBestFit(int index) {
       targetSat = target >> SATURATION & 0xff,
       targetBrt = target >> BRIGHTNESS & 0xff;
      
-  ColorIndex bestFit = null;
+  int bestFitIndex = -1;
   float bestFitValue = 9999999f;
-
-  int variance = 0;
-  while(bestFit == null) {
-    int hueToCheck = targetHue + variance;
-    if(hueToCheck >= 0 && hueToCheck < colorsByHue.size()) {
-      ArrayList<ColorIndex> curList = colorsByHue.get(hueToCheck);
-      for(int j = 0; j < curList.size(); j++) {
-        ColorIndex curColor = curList.get(j);
-        if(curColor.i >= 0) {
-          int curFit = calculateFit(targetHue, targetSat, targetBrt, curColor.c);
-          if(curFit < bestFitValue) {
-            bestFit = curColor;
-            bestFitValue = curFit;
-          }
-        }
-      }
+  
+  int numToCheck = (int)(totalSize * fractionToCheck);
+  int startingIndex = (int)random(totalSize - numToCheck);
+  for(int i = startingIndex; i < startingIndex + numToCheck; i++) {
+    int curIndex = processOrder[i];
+    color cur = startImg.pixels[curIndex];
+    int curFit = calculateFit(targetHue, targetSat, targetBrt, cur);
+    if(curFit < bestFitValue) {
+      bestFitIndex = curIndex;
+      bestFitValue = curFit;
     }
-    if(variance > 0) variance = variance * -1;
-    else variance = variance * -1 + 1;
   }
-  newOrder[bestFit.i] = index;
-  bestFit.i = -1;
+  newOrder[index] = bestFitIndex;
 }
 
 int calculateFit(int targetHue, int targetSat, int targetBrt, color test) {
