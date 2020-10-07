@@ -2,7 +2,6 @@ final int DESIRED_FRAMERATE = 30;
 final int PROCESS_THREADS = 4;
 final String IMAGES_DIR = "C:/Users/thevg/Pictures/Wallpapers/Spaceships";
 final String IMAGES_LIST_FILE = "";
-final boolean SUBDIVIDE = false;
 final boolean CYCLE = true;
 
 int imagesListFileSize = 0;
@@ -23,7 +22,11 @@ int[] newOrder;//Where each pixel in the final arrangement originally comes from
 boolean showCalculatedPixels = true;
 
 int animationFrame = 0;
-final int totalAnimationFrames = DESIRED_FRAMERATE * 2;//4;
+final int totalAnimationFrames = DESIRED_FRAMERATE / 2;//2;
+int animationStage = 0;
+final int totalAnimationStages = 6;
+int animatePerStage = 0;
+PImage animationImg;
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
 
@@ -31,21 +34,21 @@ int delayFrame = 0;
 final int totalDelayFrames = DESIRED_FRAMERATE * 1;
 
 int fadeFrame = 0;
-final int totalFadeFrames = DESIRED_FRAMERATE * 1;//3;
+final int totalFadeFrames = DESIRED_FRAMERATE * 2;//3;
 
 final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 
 void setup() {
-  //size(1600, 900);
-  //size(1000, 500);
-  size(800, 450);
+  size(1600, 900);
+  //size(800, 450);
   //size(800, 600);
   //size(400, 225);
   //size(200, 100);
   frameRate(DESIRED_FRAMERATE);
   colorMode(HSB);
   totalSize = width * height;
-  numToCheck = 700;//round(sqrt(totalSize));
+  numToCheck = round(sqrt(totalSize)/5f);//500;
+  animatePerStage = totalSize / totalAnimationStages;
   
   startImgName = getRandomImageName("");
   endImgName = getRandomImageName(startImgName);
@@ -112,6 +115,7 @@ String getRandomImageName(String exclude) {
 
 void mouseClicked() {
   if(fadeFrame == 0) {
+    animationStage = 0;
     animationFrame = 0;
     delayFrame = 0;
   }
@@ -137,10 +141,23 @@ void draw() {
       frameCount - processStartFrame, 
       numProcessed - lastProcessIndex);
     lastProcessIndex = numProcessed;
-  } else if(animationFrame <= totalAnimationFrames + 1) {
-    float frac = (float)animationFrame / totalAnimationFrames;
-    fadeToBlack(startImg, frac);    
-    animatePixels(frac, SUBDIVIDE);
+  } else if(animationStage < totalAnimationStages) {
+    if(animationFrame == 0 && animationStage == 0) {
+      background(startImg);
+      animationImg = get(0, 0, width, height);
+      int posY = lastProcessIndex / width;
+      rect(0, lastProcessIndex / width, width, height - posY);
+    } else if(animationFrame > totalAnimationFrames) {
+      animationImg = get(0, 0, width, height);
+      animationFrame = 0;
+      animationStage++;
+    } else {
+      float frac = (float)animationFrame / totalAnimationFrames;
+      background(animationImg);
+      //fadeToBlack(startImg, frac);    
+      animatePixels(frac, animationStage);
+      //println(frameRate);
+    }
     animationFrame++; 
     if(record) saveFrame(recordingFilename);
   } else if(!CYCLE) {
@@ -148,19 +165,15 @@ void draw() {
   } else if(delayFrame < totalDelayFrames) {
     delayFrame++; 
   } else if(fadeFrame < totalFadeFrames) {
-    if(fadeFrame == 0) {
-      startImg = get(0, 0, width, height);
-    } else {
-      float frac = (float)fadeFrame / totalFadeFrames;
-      fadeToImage(startImg, endImg, frac);
-    }
+    float frac = (float)fadeFrame / totalFadeFrames;
+    fadeToImage(animationImg, endImg, frac);
     fadeFrame++;
   } else {
     startImgName = endImgName;
     startImg = endImg;
     endImgName = getRandomImageName(startImgName);
     endImg = loadImageAndResize(endImgName);
-    
+     
     resetAll();
   }
 }
@@ -173,7 +186,6 @@ void analyzeStartImage4() { analyzeStartImage(4); }
 void analyzeStartImage5() { analyzeStartImage(5); }
 void analyzeStartImage6() { analyzeStartImage(6); }
 void analyzeStartImage7() { analyzeStartImage(7); }
-
 void analyzeStartImage(int offset) {
   for(int i = offset; i < totalSize; i += PROCESS_THREADS) {          
     findBestFit(i);
@@ -200,23 +212,17 @@ void fadeToBlack(PImage back, float frac) {
   rect(0, 0, width, height);
 }
 
-void animatePixels(float frac, boolean subdivide) {
-  int delta = 1;
-  if(frac > 1) frac = 1;
-  else if(subdivide) delta = 4;
-  
-  for(int i = 0; i < totalSize; i += delta) {
-    int[] destination = getCoords(processOrder[i]);
-    int[] beginning = getCoords(newOrder[processOrder[i]]);
-    int posX = (int)lerp(beginning[0], destination[0], frac);
-    int posY = (int)lerp(beginning[1], destination[1], frac);
-    color col = startImg.pixels[newOrder[processOrder[i]]];
+void animatePixels(float frac, int startStage) {
+  int startIndex = startStage * animatePerStage;
+  for(int i = startIndex; i < startIndex + animatePerStage; i++) {
+    //int destination = processOrder[i];
+    int destination = i;
+    int beginning = newOrder[destination];
+    int posX = (int)lerp(beginning % width, destination % width, frac);
+    int posY = (int)lerp(beginning / width, destination / width, frac);
+    //color col = startImg.pixels[newOrder[destination]];
+    color col = startImg.pixels[newOrder[i]];
     set(posX, posY, col);
-    if(delta == 4) {
-      set(posX+1, posY, col);
-      set(posX, posY+1, col);
-      set(posX+1, posY+1, col);
-    }
   }
 }
 
@@ -266,11 +272,10 @@ void resetAll() {
   lastProcessIndex = 0;
   processStartFrame = frameCount;
   //averageProcessed = 0;
+  animationStage = 0;
   animationFrame = 0;
   delayFrame = 0;
   fadeFrame = 0;
-  
-  background(startImg);
 }
 
 int[] getCoords(int index) {
