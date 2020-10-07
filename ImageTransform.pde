@@ -87,18 +87,12 @@ void setup() {
   startColorsRandomized = new color[TOTAL_SIZE];
   startIndexesRandomized = new int[TOTAL_SIZE];
   newOrder = new int[TOTAL_SIZE];
-  animationData = new float[TOTAL_SIZE][5];
 
   analyzeIndexes = new int[NUM_THREADS];
   animationIndexes = new int[NUM_THREADS];
   if(preAnimate) animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
   
-  easing = new float[TOTAL_ANIMATION_FRAMES][3];
-  for(int i = 0; i < TOTAL_ANIMATION_FRAMES; i++) {
-    easing[i][DEFAULT] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1));
-    easing[i][POLY] = pow(easing[i][DEFAULT], polynomialPower);
-    easing[i][POLY_INVERSE] = pow(easing[i][DEFAULT], 1f/polynomialPower);
-  }
+  initializeAnimator();
   
   resetAll();
 }
@@ -215,8 +209,9 @@ void draw() {
         curState += 3;
       } break;
     case 2:
-      if(numAnimated < TOTAL_ANIMATION_FRAMES) {
+      if(numAnimated < TOTAL_SIZE) {
         background(startImg);
+        //Fix this :)
         showAllInfo(numAnimated, TOTAL_ANIMATION_FRAMES, "Frames animated");
       } else {
         curState++;
@@ -340,8 +335,9 @@ void resetAll() {
   }
   animationInitializer = 0;
   
-  //curAnimation = (int)random(NUM_ANIMATIONS);
-  curAnimation = ANIMATION_CIRCLE;
+  curAnimation = (int)random(NUM_ANIMATIONS);
+  //curAnimation = ANIMATION_SPIRAL;
+  
   curFrame = 0;
   curState = 0;
   
@@ -409,7 +405,7 @@ void showProgressBar(int numAnalyzed, int numAnimated) {
   float frac = (float)numAnalyzed / TOTAL_SIZE;
   if(preAnimate && curState <= 3) frac = (
     (float)numAnalyzed / TOTAL_SIZE +
-    (float)numAnimated / TOTAL_ANIMATION_FRAMES)/2f;
+    (float)numAnimated / TOTAL_SIZE)/2f;
   else if(curState > 3)
     frac = 0f;
         
