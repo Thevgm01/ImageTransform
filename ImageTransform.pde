@@ -32,6 +32,8 @@ final boolean cycle = true;
 final boolean showCalculatedPixels = false;
 final boolean showAnalysisText = false;
 final boolean showProgress = true;
+final boolean showProgressBar = false;
+final boolean showProgressBorder = true;
 final boolean showNextImage = false;
 
 // IMAGES IN MEMORY //
@@ -60,8 +62,8 @@ int averageTrackerLastValue = 0;
 int averageTrackerStartFrame = 0;
 long averageTrackerStartTime = 0;
 float averageTracker;
-float prograssBarSlide = 0f;
-float progressBarSlideSpeed = PI / TOTAL_DELAY_FRAMES;
+float progressSlide = 0f;
+float progressSlideSpeed = PI / TOTAL_DELAY_FRAMES / 2f;
 
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
@@ -153,7 +155,7 @@ PImage imageOnBlack(PImage img) {
 }
 
 void mouseClicked() {
-  if(curState > 3) prograssBarSlide = PI;
+  if(curState > 3) progressSlide = PI;
   if(preAnimate && curState > 3)       curState = 3;
   else if(!preAnimate && curState > 1) curState = 1;
   curFrame = 0;
@@ -182,15 +184,14 @@ void draw() {
             initializeAnimationFrame = false;
         }
         background(startImg);
-        moveProgressBar(progressBarSlideSpeed);
+        moveProgressBar(progressSlideSpeed);
       } else {
         background(startImg);
         resetAverage();
         if(record) saveFrame(recordingFilename);
         if(preAnimate) {
           curState++;
-          for(int i = 0; i < NUM_THREADS; i++)
-            thread("createAnimationFrames" + i);
+          createTransitionAnimation();
         }
         curState++;
       }
@@ -205,7 +206,7 @@ void draw() {
         //updatePixels();
         curFrame++; 
         if(record) saveFrame(recordingFilename);
-        moveProgressBar(-progressBarSlideSpeed);
+        moveProgressBar(-progressSlideSpeed);
       } else if(cycle) {
         curFrame = 0;
         curState += 3;
@@ -223,7 +224,7 @@ void draw() {
         background(animationFrames[curFrame]);
         curFrame++; 
         if(record) saveFrame(recordingFilename);
-        moveProgressBar(-progressBarSlideSpeed);
+        moveProgressBar(-progressSlideSpeed);
       } else if(cycle) {
         curFrame = 0;
         curState++;
@@ -249,7 +250,7 @@ void draw() {
     case 6:
       background(endImg);
       if(curFrame < TOTAL_DELAY_FRAMES) {
-        moveProgressBar(progressBarSlideSpeed);
+        moveProgressBar(progressSlideSpeed);
         curFrame++;
       } else {
         curState++;
@@ -404,14 +405,14 @@ void showProgress(int numAnalyzed, int numAnimated) {
   else if(curState > 3)
     frac = 0f;
     
-  //showProgressBar(frac);
-  if(curState < 3) showProgressBorder(frac);
+  if(showProgressBar) showProgressBar(frac);
+  if(showProgressBorder) showProgressBorder(frac);
 }
 
 void moveProgressBar(float amount) {
-  prograssBarSlide -= amount;
-  if(prograssBarSlide < 0) prograssBarSlide = 0;
-  else if(prograssBarSlide > PI) prograssBarSlide = PI;
+  progressSlide -= amount;
+  if(progressSlide < 0) progressSlide = 0;
+  else if(progressSlide > PI) progressSlide = PI;
 }
 
 void showProgressBar(float frac) {
@@ -422,7 +423,7 @@ void showProgressBar(float frac) {
   int x = sideDistance, w = width - sideDistance*2,
       y = height - sideDistance - barHeight, h = barHeight;
       
-  float animationY = (cos(prograssBarSlide) - 1f) * (barHeight + sideDistance + borderThickness)/2f;
+  float animationY = (cos(progressSlide) - 1f) * (barHeight + sideDistance + borderThickness)/2f;
   
   if(y + animationY < height) {
     noFill();
@@ -433,13 +434,16 @@ void showProgressBar(float frac) {
     noStroke();
     rect(x, y - animationY, w*frac, h);
   }
-  
-  showProgressBorder(frac);
 }
 
 void showProgressBorder(float frac) {
+  float progressSlideMult = (cos(progressSlide) + 1f) / 2f;
   stroke(255);
-  strokeWeight(3);
+  strokeWeight(3f);
+  //strokeWeight(progressSlideMult * 3f);
+  frac *= progressSlideMult;
+  
+  if(frac == 0) return;
   
   line(-frac * 3f/2f * width + HALF_WIDTH, 0, frac * 3f/2f * width + HALF_WIDTH, 0);
   if(frac >= 0.33f) {
