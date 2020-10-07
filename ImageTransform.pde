@@ -11,18 +11,6 @@ final int NUM_THREADS = 6;//The number of threads, up to 8
 final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 4;//4;
 final int TOTAL_DELAY_FRAMES = DESIRED_FRAMERATE / 2;
 final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 2;//3;
-final String IMAGES_DIR =
-//"";
-//"C:/Users/thevg/Desktop/Processing/Projects/Images/Spaceships";
-"C:/Users/thevg/Desktop/Processing/Projects/Images/Landscapes";
-//"C:/Users/thevg/Pictures/Makoto Niijima Archive";
-final String IMAGES_LIST_FILE = 
-"";
-//"C:/Users/thevg/Pictures/Wallpapers/list.txt";
-int imagesListFileSize = 0;
-
-// CONSTANTS //
-final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 
 // CONFIGURATION //
 final boolean ignoreBlack = true;
@@ -31,7 +19,7 @@ final boolean cycle = true;
 
 // ANALYSIS //
 final boolean showCalculatedPixels = false;
-final boolean showAnalysisText = true;
+final boolean showAnalysisText = false;
 final boolean showProgress = true;
 final boolean showProgressBar = false;
 final boolean showProgressBorder = true;
@@ -100,59 +88,6 @@ void setup() {
   initializeAnimator();
   
   resetAll();
-}
-
-String getRandomImageName(String exclude) {
-  if(IMAGES_LIST_FILE.equals("")) {
-    File[] files = new File(IMAGES_DIR).listFiles();
-    File result;
-    do {
-      result = files[(int)random(0, files.length)];
-    } while(result.getAbsolutePath().equals(exclude));
-    return result.getAbsolutePath();
-  } else {
-    try {
-      BufferedReader reader;
-      if(imagesListFileSize == 0) {
-        reader = createReader(IMAGES_LIST_FILE);
-        while(reader.readLine() != null)
-          imagesListFileSize++;
-        reader.close();
-      }
-      String result = "";
-      do {
-        int line = (int)random(0, imagesListFileSize);
-        reader = createReader(IMAGES_LIST_FILE);
-        for(int i = 0; i < line; i++)
-          result = reader.readLine(); 
-        reader.close();
-      } while(result.equals(exclude));
-      return result;
-    } catch(Exception e) { println("Images list file not found"); }
-  }
-  return null;
-}
-
-void loadNextImage() {
-  nextImg = null;
-  while(nextImg == null || nextImg.width < 0 || nextImg.height < 0) {
-    nextImgName = getRandomImageName(endImgName);
-    nextImg = loadImage(nextImgName);
-  }
-  nextImgSmall = nextImg.copy();
-  resizeImage(nextImg, width, height);
-  resizeImage(nextImgSmall, width/4, height/3);
-}
-
-void resizeImage(PImage img, int w, int h) {
-  img.resize(w, 0); 
-  if(img.height > h) img.resize(0, h);
-}
-
-PImage imageOnBlack(PImage img) {
-  background(0);
-  image(img, HALF_WIDTH - img.width/2, HALF_HEIGHT - img.height/2);
-  return get();
 }
 
 void mouseClicked() {
@@ -275,52 +210,6 @@ void draw() {
   if(showProgress) showProgress(numAnalyzed, numAnimated);
 }
 
-void analyzeStartImage0() { analyzeStartImage(0); }
-void analyzeStartImage1() { analyzeStartImage(1); }
-void analyzeStartImage2() { analyzeStartImage(2); }
-void analyzeStartImage3() { analyzeStartImage(3); }
-void analyzeStartImage4() { analyzeStartImage(4); }
-void analyzeStartImage5() { analyzeStartImage(5); }
-void analyzeStartImage6() { analyzeStartImage(6); }
-void analyzeStartImage7() { analyzeStartImage(7); }
-
-void analyzeStartImage(int offset) {
-  for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {          
-    findBestFit(i);
-    analyzeIndexes[offset]++;
-  }
-}
-
-void findBestFit(int index) {
-  color target = endImg.pixels[index];  
-  int targetHue = target >> HUE & 0xff,
-      targetSat = target >> SATURATION & 0xff,
-      targetBrt = target >> BRIGHTNESS & 0xff;
-     
-  if(ignoreBlack && targetBrt == 0) {
-    newOrder[index] = -1;
-    return;
-  }
-     
-  int bestFitIndex = -1;
-  float bestFitValue = 999999f;
-  
-  int startingIndex = (int)random(TOTAL_SIZE - NUM_TO_CHECK);
-  for(int i = startingIndex; i < startingIndex + NUM_TO_CHECK; i++) {
-    color cur = startColorsRandomized[i];
-    int curFit = 
-      abs(targetHue - (cur >> HUE & 0xff)) +
-      abs(targetSat - (cur >> SATURATION & 0xff)) +
-      abs(targetBrt - (cur >> BRIGHTNESS & 0xff));//(cur & 0xff)
-    if(curFit < bestFitValue) {
-      bestFitIndex = startIndexesRandomized[i];
-      bestFitValue = curFit;
-      if(curFit == 0) break;
-    }
-  }
-  newOrder[index] = bestFitIndex;
-}
-
 void fadeToBlack(PImage back, float frac) {
   background(back);
   noStroke();
@@ -344,7 +233,7 @@ void resetAll() {
   }
   animationInitializer = 0;
   
-  randomizeAnimator();
+  resetAnimator();
   
   curFrame = 0;
   curState = 0;
@@ -354,6 +243,9 @@ void resetAll() {
   background(startImg);
 }
 
+// Randomizes the order of the pixels in an image to provide a
+// random sample for analysis. Remembers the original order
+// for animating the pixels.
 void randomizeImage(color[] start, color[] end, int[] order) {
   for(int i = 0; i < start.length; i++) {
     end[i] = start[i];

@@ -11,7 +11,9 @@ final int ANIMATION_ELLIPSE = 3;
 final int ANIMATION_BURST_PHYSICS = 4;
 final int ANIMATION_LURCH = 5;
 final int ANIMATION_FALLING_SAND = 6;
-final int NUM_ANIMATIONS = 7;
+final int ANIMATION_LASER = 7;
+final int ANIMATION_EVAPORATE = 8;
+final int NUM_ANIMATIONS = 9;
 
 final int ANIMATION_CIRCLE_AXIS = 10; // centerY, startAngle, endAngle, radius
 
@@ -20,29 +22,56 @@ final int POLY = 1;
 final int POLY_INVERSE = 2;
 final int STEEP = 3;
 final int POLY_STEEP = 4;
+final int partialEasingOffset = 5;
 
 final float easeValue = 3f;
 final float polynomialPower = 2f;
 final float noiseScale = 500f;
 final float trigTableSize = 4000f;
 
+final float sandFallDuration = 0.5f;
+float sandFallAcceleration;
+int sandFallFrames = (int)(sandFallDuration * TOTAL_ANIMATION_FRAMES);
+
 int curAnimation = 0;
 int easeMethodX = 0;
 int easeMethodY = 0;
 int direction = 0;
+
+int startFrame = 0;
+int[][] storedCoords;
+boolean usingStoredCoords = false;
 
 float[][] easing;
 float[][] noiseTable;
 float[] sinTable, cosTable;
 
 void initializeAnimator() {
-  easing = new float[TOTAL_ANIMATION_FRAMES][5];
+  easing = new float[TOTAL_ANIMATION_FRAMES][5 * 2];
   for(int i = 0; i < TOTAL_ANIMATION_FRAMES; i++) {
     easing[i][DEFAULT] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1), easeValue);
     easing[i][POLY] = pow(easing[i][DEFAULT], polynomialPower);
     easing[i][POLY_INVERSE] = pow(easing[i][DEFAULT], 1f/polynomialPower);
     easing[i][STEEP] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1), easeValue * 2f);
     easing[i][POLY_STEEP] = pow(easing[i][STEEP], polynomialPower);
+  }
+  
+  for(int i = sandFallFrames; i < TOTAL_ANIMATION_FRAMES; i++) {
+     float index = map(i, sandFallFrames, TOTAL_ANIMATION_FRAMES, 0, TOTAL_ANIMATION_FRAMES);
+     int integerPart = (int)index;
+     float floatPart = index - integerPart;
+     for(int j = 0; j < partialEasingOffset; j++) {
+       easing[i][j + partialEasingOffset] = lerp(easing[integerPart][j], easing[integerPart + 1][j], floatPart);
+     }
+  }
+  
+  int sandAnimationFrames = TOTAL_ANIMATION_FRAMES - sandFallFrames;
+  for(int i = 0; i < sandAnimationFrames; i++) {
+    easing[i + sandFallFrames][DEFAULT + partialEasingOffset] = easeFunc((float)i / (sandAnimationFrames - 1), easeValue);
+    easing[i + sandFallFrames][POLY + partialEasingOffset] = pow(easing[i + sandFallFrames][DEFAULT + partialEasingOffset], polynomialPower);
+    easing[i + sandFallFrames][POLY_INVERSE + partialEasingOffset] = pow(easing[i + sandFallFrames][DEFAULT + partialEasingOffset], 1f/polynomialPower);
+    easing[i + sandFallFrames][STEEP + partialEasingOffset] = easeFunc((float)i / (sandAnimationFrames - 1), easeValue * 2f);
+    easing[i + sandFallFrames][POLY_STEEP + partialEasingOffset] = pow(easing[i + sandFallFrames][STEEP + partialEasingOffset], polynomialPower);
   }
   
   noiseTable = new float[height][width];
@@ -57,20 +86,32 @@ void initializeAnimator() {
     sinTable[i] = sin(i / trigTableSize);
     cosTable[i] = cos(i / trigTableSize);
   }
+  
+  float sandFallTime = sandFallDuration * TOTAL_ANIMATION_FRAMES;
+  sandFallAcceleration = height * 2 / (sandFallTime * sandFallTime);
+  
+  storedCoords = new int[TOTAL_SIZE][5];
 }
 
-void randomizeAnimator() {
+void resetAnimator() {
     
   curAnimation = (int)random(NUM_ANIMATIONS);
-  //curAnimation = ANIMATION_ELLIPSE;
-  curAnimation = ANIMATION_LURCH;
-  //curAnimation = ANIMATION_FALLING_SAND;
+  curAnimation = ANIMATION_FALLING_SAND;
+  //curAnimation = ANIMATION_LASER;
+  
+  while(curAnimation == ANIMATION_FALLING_SAND
+  //   || curAnimation == ANIMATION_ELLIPSE 
+       || curAnimation == ANIMATION_EVAPORATE 
+        ) curAnimation = (int)random(NUM_ANIMATIONS);
   
   easeMethodX = (int)random(3);
   do easeMethodY = (int)random(3);
   while(easeMethodX == easeMethodY && easeMethodX != 0); // Ensure you can't have two of the same polynomial easing
   
   direction = random(1) > 0.5f ? 1 : -1;
+  
+  startFrame = 0;
+  usingStoredCoords = false;
 }
 
 float getTrigTable(float[] table, float angle) {
@@ -95,10 +136,12 @@ float easeFunc(float t, float strength) {
 void createTransitionAnimation() {
   switch(curAnimation) {
     case ANIMATION_FALLING_SAND:
-      thread("animate_fallingSand"); break;
+      thread("animate_fallingSand");
+      break;
     default:
       for(int i = 0; i < NUM_THREADS; i++)
         thread("createAnimationFrames" + i);
+      break;
   }
 }
 
@@ -115,9 +158,13 @@ void createAnimationFrames(int offset) {
   for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {
     animationIndexes[offset]++;
 
-    int j = newOrder[i];
-    if(j == -1) continue;
-    int[] coords = getCoords(i, j);
+    int[] coords;
+    if(usingStoredCoords) coords = storedCoords[i];
+    else {
+      int j = newOrder[i];
+      if(j == -1) continue;
+      coords = getCoords(i, j);
+    }
 
     switch(curAnimation) {
       case ANIMATION_LINEAR: 
@@ -132,6 +179,10 @@ void createAnimationFrames(int offset) {
         animatePixel_burstPhysics(coords); break;
       case ANIMATION_LURCH: 
         animatePixel_lurch(coords); break;
+      case ANIMATION_LASER: 
+        animatePixel_laser(coords); break;
+      case ANIMATION_EVAPORATE: 
+        animatePixel_evaporate(coords); break;
       //case ANIMATION_CIRCLE_AXIS: 
       //  animatePixel_circleAxis(c, coords); break;
     }
@@ -141,10 +192,10 @@ void createAnimationFrames(int offset) {
 void animatePixel_linear(int[] coords) {  
   float xDiff = coords[X2] - coords[X1],
         yDiff = coords[Y2] - coords[Y1];
-  for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
     float newX = coords[X1] + xDiff * easing[frame][easeMethodX],
           newY = coords[Y1] + yDiff * easing[frame][easeMethodY];
-    animationFrames[frame].pixels[round(newY) * width + round(newX)] = coords[COLOR];
+    plot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -154,12 +205,12 @@ void animatePixel_circle(int[] coords) {
   float startAngle = atan2(coords[Y1] - centerY, coords[X1] - centerX);
   float radius = dist(coords[X1], coords[Y1], coords[X2], coords[Y2]) / 2f;
   
-  for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {    
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {    
     float rotateAmount = startAngle + PI * direction * easing[frame][DEFAULT];
     float newX = centerX + getTrigTable(cosTable, rotateAmount) * radius,
           newY = centerY + getTrigTable(sinTable, rotateAmount) * radius;
     if(newX < 0 || newX >= width - 1 || newY < 0 || newY >= height - 1) continue;
-    animationFrames[frame].pixels[round(newY) * width + round(newX)] = coords[COLOR];
+    plot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -175,13 +226,13 @@ void animatePixel_spiral(int[] coords) {
   
   float radiusDiff = endDist - startDist;
   
-  for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {    
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {    
     float rotateAmount = startAngle + angleDiff * direction * easing[frame][easeMethodX];
     float radiusAmount = startDist + radiusDiff * easing[frame][easeMethodY];
     float newX = HALF_WIDTH + getTrigTable(cosTable, rotateAmount) * radiusAmount,
           newY = HALF_HEIGHT + getTrigTable(sinTable, rotateAmount) * radiusAmount;
     if(newX < 0 || newX >= width - 1 || newY < 0 || newY >= height - 1) continue;
-    animationFrames[frame].pixels[round(newY) * width + round(newX)] = coords[COLOR];
+    plot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -230,12 +281,12 @@ void animatePixel_ellipse(int[] coords) {
   float angleDiff = endAngle - startAngle;
   //if(angleDiff < PI*3f/5) angleDiff += TWO_PI;
 
-  for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {    
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {    
     float rotateAmount = startAngle + angleDiff /** direction*/ * easing[frame][DEFAULT];    
     float newX = HALF_WIDTH + getTrigTable(cosTable, -rotateAmount) * ellipseWidthRadius,
           newY = centerY + getTrigTable(sinTable, -rotateAmount) * ellipseHeightRadius;
     if(newX < 0 || newX >= width - 1 || newY < 0 || newY >= height - 1) continue;
-    animationFrames[frame].pixels[round(newY) * width + round(newX)] = coords[COLOR];
+    plot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -251,8 +302,8 @@ void animatePixel_burstPhysics(int[] coords) {
   float xVel = startVel * ((coords[X1] - HALF_WIDTH) / 5f);// + cos(startAngle));
   float yVel = startVel * ((coords[Y1] - HALF_HEIGHT) / 5f);// + sin(startAngle));
   
-  for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {
-     //<>// //<>//
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
+     //<>// //<>// //<>//
     newX += xVel;
     if(newX < 0) {
       newX = -newX;
@@ -276,24 +327,26 @@ void animatePixel_burstPhysics(int[] coords) {
       yVel *= 0.995f;
     }
 
-    animationFrames[frame].pixels[
-      round(lerp(newY, coords[Y2], easing[frame][POLY_STEEP])) * width + 
-      round(lerp(newX, coords[X2], easing[frame][POLY_STEEP]))] = coords[COLOR];
+    plot(
+      round(lerp(newX, coords[X2], easing[frame][POLY_STEEP])),
+      round(lerp(newY, coords[Y2], easing[frame][POLY_STEEP])), 
+      coords[COLOR],
+      frame);
   }
 }
 
 void animatePixel_lurch(int[] coords) {
   float newX, newY;
+
   boolean horizontalFirst;
-  
-  //boolean horizontalFirst = true;
-  //boolean horizontalFirst = direction > 0 ? true : false;
-  if(easeMethodX == 0) horizontalFirst = random(0f, 1f) < 0.5f ? true : false;
-  else if(easeMethodX == 1) horizontalFirst = true;
-  else horizontalFirst = false;
+  switch(easeMethodX) {
+    case 0: horizontalFirst = true; break;
+    case 1: horizontalFirst = false; break;
+    default: horizontalFirst = random(0f, 1f) < 0.5f ? true : false; break;
+  }
   
   if(horizontalFirst) {
-    for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {
+    for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
       if(frame < TOTAL_ANIMATION_FRAMES / 2) {
         newX = lerp(coords[X1], coords[X2], easing[frame * 2][POLY]); 
         newY = coords[Y1];
@@ -301,10 +354,10 @@ void animatePixel_lurch(int[] coords) {
         newX = coords[X2];
         newY = lerp(coords[Y1], coords[Y2], easing[frame * 2 - TOTAL_ANIMATION_FRAMES][POLY_INVERSE]); 
       }
-      animationFrames[frame].pixels[round(newY) * width + round(newX)] = coords[COLOR];
+      plot(newX, newY, coords[COLOR], frame);
     }
   } else {
-    for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {
+    for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
       if(frame < TOTAL_ANIMATION_FRAMES / 2) {
         newX = coords[X1];
         newY = lerp(coords[Y1], coords[Y2], easing[frame * 2][POLY]);
@@ -312,7 +365,7 @@ void animatePixel_lurch(int[] coords) {
         newX = lerp(coords[X1], coords[X2], easing[frame * 2 - TOTAL_ANIMATION_FRAMES][POLY_INVERSE]); 
         newY = coords[Y2];
       }
-      animationFrames[frame].pixels[round(newY) * width + round(newX)] = coords[COLOR];
+      plot(newX, newY, coords[COLOR], frame);
     }
   }
 }
@@ -338,23 +391,23 @@ void animate_fallingSand() {
   Sand[] sandList = new Sand[TOTAL_SIZE];
   int[] sandPointers = new int[TOTAL_SIZE];
   float velocity = 0;
-  float gravity = 0.15f;
+  //float gravity = 0.15f;
   
   for(int i = 0; i < TOTAL_SIZE; i++) {
-    int j = newOrder[i];
+    int j = newOrder[i]; // starting index
     if(j == -1) continue;
-    if(sandList[j] == null) {
-      int[] coords = getCoords(i, j);
+    
+    int[] coords = getCoords(i, j);
+    storedCoords[i] = coords;
+    if(sandList[j] == null)
       sandList[j] = new Sand(coords[X1], coords[Y1], coords[COLOR]);
-    }
     sandPointers[i] = j;
   }
   
   int finalFallFrame = -1;
-  for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {
-    velocity += gravity;
+  for(int frame = startFrame; frame < sandFallFrames; frame++) {
+    velocity += sandFallAcceleration;
     animationIndexes[0] += TOTAL_SIZE / TOTAL_ANIMATION_FRAMES;
-    boolean fellThisFrame = false;
 
     for(int i = TOTAL_SIZE - 1; i >= 0; i--) {
       if(sandList[sandPointers[i]] == null) continue;
@@ -366,7 +419,6 @@ void animate_fallingSand() {
         
         if (s.falling) {
           s.y += velocity;
-          fellThisFrame = true;
   
           if (height - s.y - 1 < sandLastRadius[s.x]) {
             s.falling = false;
@@ -402,24 +454,122 @@ void animate_fallingSand() {
         }      
         
         //if(s.x < 0 || s.x >= width - 1 || round(s.y) < 0 || round(s.y) >= height - 1) continue;
-        animationFrames[frame].pixels[
-          round(s.y) * width + s.x] = s.c;
-          
-      } else {
-        float frac = (float)(frame - finalFallFrame) / (TOTAL_ANIMATION_FRAMES - finalFallFrame);
-        float fracEase = easing[(int)(frac * TOTAL_ANIMATION_FRAMES)][DEFAULT];
-        float newX = s.x + (i % width - s.x) * fracEase;
-        float newY = s.y + (i / width - s.y) * fracEase;
-        animationFrames[frame].pixels[
-          round(newY) * width + round(newX)] = s.c;
+        plot(s.x, s.y, s.c, frame);
       }
     }
-    if(finalFallFrame < 0 && !fellThisFrame) {
-      finalFallFrame = frame;
+  }
+  for(int i = 0; i < TOTAL_SIZE; i++) {
+    Sand s = sandList[sandPointers[i]];
+    if(sandList[sandPointers[i]] == null) continue;
+    storedCoords[i][X1] = s.x;
+    storedCoords[i][Y1] = (int)s.y;
+  }
+  easeMethodX += partialEasingOffset;
+  easeMethodY += partialEasingOffset;
+  while(curAnimation == ANIMATION_FALLING_SAND) curAnimation = (int)random(NUM_ANIMATIONS);
+  usingStoredCoords = true;
+  startFrame = sandFallFrames;
+  createTransitionAnimation();
+}
+
+/*
+void animatePixel_laser(int[] coords) {
+  int laserDurationFrames = 10;
+  //int laserStartFrame = (int)random(0, TOTAL_ANIMATION_FRAMES - laserDurationFrames);
+  int laserStartFrame = (int)(((float)coords[Y2] / height) * (TOTAL_ANIMATION_FRAMES - laserDurationFrames));
+    
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
+    if(frame < laserStartFrame) {
+      plot(coords[X1], coords[Y1], coords[COLOR], animationFrames[frame].pixels);
+    } else if(frame == laserStartFrame) {
+      plotLine(
+        coords[X1], 
+        coords[Y1], 
+        coords[X2],
+        coords[Y2],
+        coords[COLOR], 
+        animationFrames[frame].pixels);
+    } else {
+      plot(coords[X2], coords[Y2], coords[COLOR], animationFrames[frame].pixels);
+    }
+  }
+}
+*/
+void animatePixel_laser(int[] coords) {
+  int laserDurationFrames = 15;
+  float laserLength = 0.1f;
+  
+  // Could randomize these more, but due to rendering order certain things overlap
+  int laserStartFrame;
+  switch(easeMethodX) {
+    case 0: laserStartFrame = 
+      (int)(((float)coords[Y1] / height) * (TOTAL_ANIMATION_FRAMES - laserDurationFrames));
+      //if(direction < 0) laserStartFrame = TOTAL_ANIMATION_FRAMES - laserStartFrame - laserDurationFrames * 2;
+      laserStartFrame = TOTAL_ANIMATION_FRAMES - laserStartFrame - laserDurationFrames * 2;
+      break;
+    case 1: laserStartFrame = 
+      (int)(((float)coords[Y2] / height) * (TOTAL_ANIMATION_FRAMES - laserDurationFrames));
+      //if(direction < 0) laserStartFrame = TOTAL_ANIMATION_FRAMES - laserStartFrame - laserDurationFrames * 2;
+      break;
+    default: laserStartFrame = 
+      (int)random(0, TOTAL_ANIMATION_FRAMES - laserDurationFrames);
+      break;
+  }
+  
+  int laserEndFrame = laserStartFrame + laserDurationFrames;
+  
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
+    if(frame < laserStartFrame) {
+      plot(coords[X1], coords[Y1], coords[COLOR], frame);
+    } else if(frame < laserEndFrame) {
+      float frac = map(frame - laserStartFrame, 0, laserDurationFrames, 0, 1 + laserLength);
+      //float frac = ((float)frame - laserStartFrame) / laserDurationFrames;
+      //float fracFrame = map(frame, laserStartFrame, laserEndFrame, 0, TOTAL_ANIMATION_FRAMES);
+      //float frac = easing[round(fracFrame)][STEEP];
+      if(frac < laserLength) {
+        plotLine(
+          coords[X1],
+          coords[Y1],
+          round(lerp(coords[X1], coords[X2], frac)),
+          round(lerp(coords[Y1], coords[Y2], frac)),
+          coords[COLOR], 
+          frame);
+      } else if(frac < 1) {
+        plotLine( 
+          round(lerp(coords[X1], coords[X2], frac - laserLength)),
+          round(lerp(coords[Y1], coords[Y2], frac - laserLength)),
+          round(lerp(coords[X1], coords[X2], frac)),
+          round(lerp(coords[Y1], coords[Y2], frac)),
+          coords[COLOR], 
+          frame);
+      } else {
+        plotLine( 
+          round(lerp(coords[X1], coords[X2], frac - laserLength)),
+          round(lerp(coords[Y1], coords[Y2], frac - laserLength)),
+          coords[X2],
+          coords[Y2],
+          coords[COLOR], 
+          frame);
+      }
+    } else {
+      plot(coords[X2], coords[Y2], coords[COLOR], frame);
     }
   }
 }
 
+void animatePixel_evaporate(int[] coords) {
+  float newX, newY;
+  
+  float timeToFinish = 0.2f;
+  int framesToFinish = (int)(TOTAL_ANIMATION_FRAMES * timeToFinish);
+  int startFrame = (int)random(TOTAL_ANIMATION_FRAMES - framesToFinish);
+  
+  for(int frame = startFrame; frame < startFrame + framesToFinish; frame++) {
+     
+  }
+}
+
+/*
 void animatePixel_circleAxis(int[] coords) {
   float perpSlope = -((float)coords[X2] - coords[X1]) / ((float)coords[Y2] - coords[Y1]);
   perpSlope = constrain(perpSlope, -10000, 10000);
@@ -441,6 +591,8 @@ void animatePixel_circleAxis(int[] coords) {
     animationFrames[frame].pixels[round(newY) * width + round(newX)] = coords[COLOR];
   }
 }
+*/
 
+// make it look like a wave
 // https://math.stackexchange.com/questions/121720/ease-in-out-function
 // https://math.stackexchange.com/questions/547045/ellipses-given-focus-and-two-points
