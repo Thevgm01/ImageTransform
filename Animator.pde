@@ -112,7 +112,7 @@ void resetAnimator() {
   
   // OVERRIDES //
   //curAnimation = ANIMATION_EVAPORATE;
-  curAnimation = ANIMATION_BURST_PHYSICS;
+  //curAnimation = ANIMATION_BURST_PHYSICS;
   //easeMethodX = 2;
 }
 
@@ -306,9 +306,15 @@ void animatePixel_burstPhysics(int[] coords) {
   float gravity = 0.0f;
   //float xVel = startVel * ((coords[X1] - HALF_WIDTH) / 5f);// + cos(startAngle));
   //float yVel = startVel * ((coords[Y1] - HALF_HEIGHT) / 5f);// + sin(startAngle));
-  float maxSpeed = 10f;
-  float xVel = cos(startAngle) * randomSpread + (float)(coords[COLOR] >> HUE & 0xff) / 256f * maxSpeed - (maxSpeed / 2);
-  float yVel = sin(startAngle) * randomSpread + (float)(coords[COLOR] >> SATURATION & 0xff) / 256f * maxSpeed - (maxSpeed / 2);
+  float maxSpeed = 5f;
+  //float halfMaxSpeed = 0;
+  float tempXVel = ((float)(coords[COLOR] >> SATURATION & 0xff) / 256f) * maxSpeed + cos(startAngle) * randomSpread;
+  float tempYVel = ((float)(coords[COLOR] >> BRIGHTNESS & 0xff) / 256f) * maxSpeed * 2 - maxSpeed + sin(startAngle) * randomSpread;
+  float rotation = ((float)(coords[COLOR] >> HUE & 0xff) / 256f) * 2 * PI;
+  float xVel = tempXVel * cos(rotation) - tempYVel * sin(rotation);
+  float yVel = tempXVel * sin(rotation) + tempYVel * cos(rotation);
+  //float xVel = tempXVel;
+  //float yVel = tempYVel;
   
   float speedDecay = 0.998f;
   
