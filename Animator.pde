@@ -111,9 +111,8 @@ void resetAnimator() {
   usingStoredCoords = false;
   
   // OVERRIDES //
-  //curAnimation = ANIMATION_SPIRAL;
   //curAnimation = ANIMATION_EVAPORATE;
-  //curAnimation = ANIMATION_FALLING_SAND;
+  curAnimation = ANIMATION_BURST_PHYSICS;
   //easeMethodX = 2;
 }
 
@@ -296,14 +295,22 @@ void animatePixel_ellipse(int[] coords) {
 void animatePixel_burstPhysics(int[] coords) {
   float newX = coords[X1];
   float newY = coords[Y1];
-  //float startAngle = random(0, TWO_PI);
+  float startAngle = random(0, TWO_PI);
+  float randomSpread = randomGaussian() / 10f;
   //float startVel = abs(randomGaussian()) / 20f;
-  float startVel = random(0.05f, 0.1f);
+  //float startVel = random(0.0f, 0.2f);
+  //float startVel = (float) coords[COLOR] / 0xffffff / 5;
   //float gravity = 0.1f;
-  float gravity = random(0.18f, 0.2f);
+  //float gravity = random(0.18f, 0.2f);
   //float gravity = noiseTable[coords[Y1]][coords[X1]] / 5f;
-  float xVel = startVel * ((coords[X1] - HALF_WIDTH) / 5f);// + cos(startAngle));
-  float yVel = startVel * ((coords[Y1] - HALF_HEIGHT) / 5f);// + sin(startAngle));
+  float gravity = 0.0f;
+  //float xVel = startVel * ((coords[X1] - HALF_WIDTH) / 5f);// + cos(startAngle));
+  //float yVel = startVel * ((coords[Y1] - HALF_HEIGHT) / 5f);// + sin(startAngle));
+  float maxSpeed = 10f;
+  float xVel = cos(startAngle) * randomSpread + (float)(coords[COLOR] >> HUE & 0xff) / 256f * maxSpeed - (maxSpeed / 2);
+  float yVel = sin(startAngle) * randomSpread + (float)(coords[COLOR] >> SATURATION & 0xff) / 256f * maxSpeed - (maxSpeed / 2);
+  
+  float speedDecay = 0.998f;
   
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
      //<>// //<>// //<>//
@@ -327,12 +334,12 @@ void animatePixel_burstPhysics(int[] coords) {
       newY = 2 * height - newY - 4;
       yVel = -yVel;
     } else {
-      yVel *= 0.995f;
+      yVel *= speedDecay;
     }
 
     plot(
-      round(lerp(newX, coords[X2], easing[frame][POLY_STEEP])),
-      round(lerp(newY, coords[Y2], easing[frame][POLY_STEEP])), 
+      round(lerp(newX, coords[X2], easing[frame][easeMethodX])),
+      round(lerp(newY, coords[Y2], easing[frame][easeMethodY])), 
       coords[COLOR],
       frame);
   }
