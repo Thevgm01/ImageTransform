@@ -41,9 +41,9 @@ boolean defaultLegacyAnalysis = legacyAnalysis;
 final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
 
 ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> startImage_HSB_cube;
-final int HSB_CUBE_DIMENSIONS = 64;
-final int HSB_CUBE_COLOR_DEPTH_SCALE = 256 / HSB_CUBE_DIMENSIONS;
-final int HSB_CUBE_BIT_SHIFT = (int)sqrt(HSB_CUBE_COLOR_DEPTH_SCALE);
+final int RGB_CUBE_DIMENSIONS = 64;
+//final int RGB_CUBE_COLOR_DEPTH_SCALE = 256 / RGB_CUBE_DIMENSIONS;
+final int RGB_CUBE_BIT_SHIFT = (int)sqrt(256 / RGB_CUBE_DIMENSIONS);
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
@@ -91,11 +91,11 @@ void setup() {
   newOrder = new int[TOTAL_SIZE];
 
   startImage_HSB_cube = new ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>();
-  for(int i = 0; i < HSB_CUBE_DIMENSIONS; i++) {
+  for(int i = 0; i < RGB_CUBE_DIMENSIONS; i++) {
     startImage_HSB_cube.add(new ArrayList<ArrayList<ArrayList<Integer>>>());
-    for(int j = 0; j < HSB_CUBE_DIMENSIONS; j++) {
+    for(int j = 0; j < RGB_CUBE_DIMENSIONS; j++) {
       startImage_HSB_cube.get(i).add(new ArrayList<ArrayList<Integer>>());
-      for(int k = 0; k < HSB_CUBE_DIMENSIONS; k++) {
+      for(int k = 0; k < RGB_CUBE_DIMENSIONS; k++) {
         startImage_HSB_cube.get(i).get(j).add(new ArrayList<Integer>());
       }
     }

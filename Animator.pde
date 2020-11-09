@@ -308,9 +308,9 @@ void animatePixel_burstPhysics(int[] coords) {
   //float yVel = startVel * ((coords[Y1] - HALF_HEIGHT) / 5f);// + sin(startAngle));
   float maxSpeed = 5f;
   //float halfMaxSpeed = 0;
-  float tempXVel = ((float)(coords[COLOR] >> SATURATION & 0xff) / 256f) * maxSpeed + cos(startAngle) * randomSpread;
-  float tempYVel = ((float)(coords[COLOR] >> BRIGHTNESS & 0xff) / 256f) * maxSpeed * 2 - maxSpeed + sin(startAngle) * randomSpread;
-  float rotation = ((float)(coords[COLOR] >> HUE & 0xff) / 256f) * 2 * PI;
+  float tempXVel = ((float)saturation(coords[COLOR]) / 256f) * maxSpeed + cos(startAngle) * randomSpread;
+  float tempYVel = ((float)brightness(coords[COLOR]) / 256f) * maxSpeed * 2 - maxSpeed + sin(startAngle) * randomSpread;
+  float rotation = ((float)hue(coords[COLOR]) / 256f) * 2 * PI;
   float xVel = tempXVel * cos(rotation) - tempYVel * sin(rotation);
   float yVel = tempXVel * sin(rotation) + tempYVel * cos(rotation);
   //float xVel = tempXVel;

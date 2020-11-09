@@ -1,9 +1,9 @@
-final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
+final int RED = 16, GREEN = 8, BLUE = 0;
 
 void analyzeStartImage() {
-  for(int i = 0; i < HSB_CUBE_DIMENSIONS; i++) {
-    for(int j = 0; j < HSB_CUBE_DIMENSIONS; j++) {
-      for(int k = 0; k < HSB_CUBE_DIMENSIONS; k++) {
+  for(int i = 0; i < RGB_CUBE_DIMENSIONS; i++) {
+    for(int j = 0; j < RGB_CUBE_DIMENSIONS; j++) {
+      for(int k = 0; k < RGB_CUBE_DIMENSIONS; k++) {
         startImage_HSB_cube.get(i).get(j).get(k).clear();
       }
     }
@@ -11,16 +11,15 @@ void analyzeStartImage() {
 
   for(int i = 0; i < TOTAL_SIZE; i++) {
     color pixel = startImg.pixels[i];
-    int pixelHue = (pixel >> HUE & 0xff) >> HSB_CUBE_BIT_SHIFT,
-        pixelSat = (pixel >> SATURATION & 0xff) >> HSB_CUBE_BIT_SHIFT,
-        pixelBrt = (pixel >> BRIGHTNESS & 0xff) >> HSB_CUBE_BIT_SHIFT;
-    if(ignoreBlack && pixelBrt == 0) {
-      continue;
-    }
+    if(ignoreBlack && brightness(pixel) == 0) continue;
+    
+    int pixelR = (pixel >> RED & 0xff) >> RGB_CUBE_BIT_SHIFT,
+        pixelG = (pixel >> GREEN & 0xff) >> RGB_CUBE_BIT_SHIFT,
+        pixelB = (pixel >> BLUE & 0xff) >> RGB_CUBE_BIT_SHIFT;
     startImage_HSB_cube
-      .get(pixelHue)
-      .get(pixelSat)
-      .get(pixelBrt)
+      .get(pixelR)
+      .get(pixelG)
+      .get(pixelB)
       .add(i);
   }
 
@@ -48,20 +47,20 @@ void findBestFitThread(int offset) {
 // Find a pixel from the start image that most closely matches the 
 // given pixel from the end image
 void findBestFit(int index) {
-  color target = endImg.pixels[index];  
-  int targetHue = (target >> HUE & 0xff) >> HSB_CUBE_BIT_SHIFT,
-      targetSat = (target >> SATURATION & 0xff) >> HSB_CUBE_BIT_SHIFT,
-      targetBrt = (target >> BRIGHTNESS & 0xff) >> HSB_CUBE_BIT_SHIFT;
-     
-  if(ignoreBlack && targetBrt == 0) {
+  color target = endImg.pixels[index];
+  if(ignoreBlack && brightness(target) == 0) {
     newOrder[index] = -1;  
     return;
   }
-    
-  ArrayList<Integer> candidates = new ArrayList<Integer>();
-  addAllIfNotNull(candidates, testPoint_HSB_cube(targetHue, targetSat, targetBrt));
+  
+  int targetR = (target >> RED & 0xff) >> RGB_CUBE_BIT_SHIFT,
+      targetG = (target >> GREEN & 0xff) >> RGB_CUBE_BIT_SHIFT,
+      targetB = (target >> BLUE & 0xff) >> RGB_CUBE_BIT_SHIFT;
 
-  for(int shellSize = 1; shellSize < HSB_CUBE_DIMENSIONS; shellSize++) {
+  ArrayList<Integer> candidates = new ArrayList<Integer>();
+  addAllIfNotNull(candidates, testPoint_HSB_cube(targetR, targetG, targetB));
+
+  for(int shellSize = 1; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
     
     if(candidates.size() > 0) {
       if(candidates.size() > 1) newOrder[index] = candidates.get((int)random(candidates.size()));
@@ -71,48 +70,48 @@ void findBestFit(int index) {
     }
     
     // Front side
-    for(int i = targetHue - shellSize; i <= targetHue + shellSize; i++) {
-       for(int j = targetSat - shellSize; j <= targetSat + shellSize; j++) {
-         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, targetBrt - shellSize));
+    for(int i = targetR - shellSize; i <= targetR + shellSize; i++) {
+       for(int j = targetG - shellSize; j <= targetG + shellSize; j++) {
+         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, targetB - shellSize));
        }
     }
     // Back side
-    for(int i = targetHue - shellSize; i <= targetHue + shellSize; i++) {
-       for(int j = targetSat - shellSize; j <= targetSat + shellSize; j++) {
-         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, targetBrt + shellSize));
+    for(int i = targetR - shellSize; i <= targetR + shellSize; i++) {
+       for(int j = targetG - shellSize; j <= targetG + shellSize; j++) {
+         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, targetB + shellSize));
        }
     }
     // Left side (minus front and back edges)
-    for(int j = targetSat - shellSize; j <= targetSat + shellSize; j++) {
-      for(int k = targetBrt - shellSize + 1; k < targetBrt + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(targetHue - shellSize, j, k));
+    for(int j = targetG - shellSize; j <= targetG + shellSize; j++) {
+      for(int k = targetB - shellSize + 1; k < targetB + shellSize; k++) {
+        addAllIfNotNull(candidates, testPoint_HSB_cube(targetR - shellSize, j, k));
       }
     }
     // Right side (minus front and back edges)
-    for(int j = targetSat - shellSize; j <= targetSat + shellSize; j++) {
-      for(int k = targetBrt - shellSize + 1; k < targetBrt + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(targetHue + shellSize, j, k));
+    for(int j = targetG - shellSize; j <= targetG + shellSize; j++) {
+      for(int k = targetB - shellSize + 1; k < targetB + shellSize; k++) {
+        addAllIfNotNull(candidates, testPoint_HSB_cube(targetR + shellSize, j, k));
       }
     }
     // Bottom side (minus front and back edges, left and right edges)
-    for(int i = targetHue - shellSize + 1; i < targetHue + shellSize; i++) {
-      for(int k = targetBrt - shellSize + 1; k < targetBrt + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(i, targetSat - shellSize, k));
+    for(int i = targetR - shellSize + 1; i < targetR + shellSize; i++) {
+      for(int k = targetB - shellSize + 1; k < targetB + shellSize; k++) {
+        addAllIfNotNull(candidates, testPoint_HSB_cube(i, targetG - shellSize, k));
       }
     }
     // Top side (minus front and back edges, left and right edges)
-    for(int i = targetHue - shellSize + 1; i < targetHue + shellSize; i++) {
-      for(int k = targetBrt - shellSize + 1; k < targetBrt + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(i, targetSat + shellSize, k));
+    for(int i = targetR - shellSize + 1; i < targetR + shellSize; i++) {
+      for(int k = targetB - shellSize + 1; k < targetB + shellSize; k++) {
+        addAllIfNotNull(candidates, testPoint_HSB_cube(i, targetG + shellSize, k));
       }
     }
   }
 }
 
 ArrayList<Integer> testPoint_HSB_cube(int x, int y, int z) {
-  if(x < 0 || x >= HSB_CUBE_DIMENSIONS
-  || y < 0 || y >= HSB_CUBE_DIMENSIONS
-  || z < 0 || z >= HSB_CUBE_DIMENSIONS)
+  if(x < 0 || x >= RGB_CUBE_DIMENSIONS
+  || y < 0 || y >= RGB_CUBE_DIMENSIONS
+  || z < 0 || z >= RGB_CUBE_DIMENSIONS)
     return null;
     
   ArrayList<Integer> options = startImage_HSB_cube.get(x).get(y).get(z);
