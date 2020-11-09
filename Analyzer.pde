@@ -1,18 +1,9 @@
 final int HUE = 16, SATURATION = 8, BRIGHTNESS = 0;
 
-void findBestFitThread0() { findBestFitThread(0); }
-void findBestFitThread1() { findBestFitThread(1); }
-void findBestFitThread2() { findBestFitThread(2); }
-void findBestFitThread3() { findBestFitThread(3); }
-void findBestFitThread4() { findBestFitThread(4); }
-void findBestFitThread5() { findBestFitThread(5); }
-void findBestFitThread6() { findBestFitThread(6); }
-void findBestFitThread7() { findBestFitThread(7); }
-
 void analyzeStartImage() {
-  for(int i = 0; i < HSB_CUBE_SIZE; i++) {
-    for(int j = 0; j < HSB_CUBE_SIZE; j++) {
-      for(int k = 0; k < HSB_CUBE_SIZE; k++) {
+  for(int i = 0; i < HSB_CUBE_DIMENSIONS; i++) {
+    for(int j = 0; j < HSB_CUBE_DIMENSIONS; j++) {
+      for(int k = 0; k < HSB_CUBE_DIMENSIONS; k++) {
         startImage_HSB_cube.get(i).get(j).get(k).clear();
       }
     }
@@ -37,6 +28,15 @@ void analyzeStartImage() {
     thread("findBestFitThread" + i);
   }
 }
+
+void findBestFitThread0() { findBestFitThread(0); }
+void findBestFitThread1() { findBestFitThread(1); }
+void findBestFitThread2() { findBestFitThread(2); }
+void findBestFitThread3() { findBestFitThread(3); }
+void findBestFitThread4() { findBestFitThread(4); }
+void findBestFitThread5() { findBestFitThread(5); }
+void findBestFitThread6() { findBestFitThread(6); }
+void findBestFitThread7() { findBestFitThread(7); }
 
 void findBestFitThread(int offset) {
   for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {          
@@ -63,9 +63,9 @@ void findBestFit(int index) {
       z = targetBrt / HSB_CUBE_COLOR_DEPTH_SCALE;
   
   ArrayList<Integer> candidates = new ArrayList<Integer>();
-  addIfNotNull(candidates, testPoint_HSB_cube(x, y, z));
+  addAllIfNotNull(candidates, testPoint_HSB_cube(x, y, z));
 
-  for(int shellSize = 1; shellSize < HSB_CUBE_SIZE; shellSize++) {
+  for(int shellSize = 1; shellSize < HSB_CUBE_DIMENSIONS; shellSize++) {
     
     if(candidates.size() > 0) {
       if(candidates.size() > 1) newOrder[index] = candidates.get((int)random(candidates.size()));
@@ -77,46 +77,46 @@ void findBestFit(int index) {
     // Front side
     for(int i = x - shellSize; i <= x + shellSize; i++) {
        for(int j = y - shellSize; j <= y + shellSize; j++) {
-         addIfNotNull(candidates, testPoint_HSB_cube(i, j, z - shellSize));
+         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, z - shellSize));
        }
     }
     // Back side
     for(int i = x - shellSize; i <= x + shellSize; i++) {
        for(int j = y - shellSize; j <= y + shellSize; j++) {
-         addIfNotNull(candidates, testPoint_HSB_cube(i, j, z + shellSize));
+         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, z + shellSize));
        }
     }
     // Left side (minus front and back edges)
     for(int j = y - shellSize; j <= y + shellSize; j++) {
       for(int k = z - shellSize + 1; k < z + shellSize; k++) {
-        addIfNotNull(candidates, testPoint_HSB_cube(x - shellSize, j, k));
+        addAllIfNotNull(candidates, testPoint_HSB_cube(x - shellSize, j, k));
       }
     }
     // Right side (minus front and back edges)
     for(int j = y - shellSize; j <= y + shellSize; j++) {
       for(int k = z - shellSize + 1; k < z + shellSize; k++) {
-        addIfNotNull(candidates, testPoint_HSB_cube(x + shellSize, j, k));
+        addAllIfNotNull(candidates, testPoint_HSB_cube(x + shellSize, j, k));
       }
     }
     // Bottom side (minus front and back edges, left and right edges)
     for(int i = x - shellSize + 1; i < x + shellSize; i++) {
       for(int k = z - shellSize + 1; k < z + shellSize; k++) {
-        addIfNotNull(candidates, testPoint_HSB_cube(i, y - shellSize, k));
+        addAllIfNotNull(candidates, testPoint_HSB_cube(i, y - shellSize, k));
       }
     }
     // Top side (minus front and back edges, left and right edges)
     for(int i = x - shellSize + 1; i < x + shellSize; i++) {
       for(int k = z - shellSize + 1; k < z + shellSize; k++) {
-        addIfNotNull(candidates, testPoint_HSB_cube(i, y + shellSize, k));
+        addAllIfNotNull(candidates, testPoint_HSB_cube(i, y + shellSize, k));
       }
     }
   }
 }
 
 ArrayList<Integer> testPoint_HSB_cube(int x, int y, int z) {
-  if(x < 0 || x >= HSB_CUBE_SIZE
-  || y < 0 || y >= HSB_CUBE_SIZE
-  || z < 0 || z >= HSB_CUBE_SIZE)
+  if(x < 0 || x >= HSB_CUBE_DIMENSIONS
+  || y < 0 || y >= HSB_CUBE_DIMENSIONS
+  || z < 0 || z >= HSB_CUBE_DIMENSIONS)
     return null;
     
   ArrayList<Integer> options = startImage_HSB_cube.get(x).get(y).get(z);
@@ -129,7 +129,7 @@ ArrayList<Integer> testPoint_HSB_cube(int x, int y, int z) {
   return null;
 }
 
-void addIfNotNull(ArrayList a, ArrayList b) {
+void addAllIfNotNull(ArrayList a, ArrayList b) {
   if(b == null) return;
   a.addAll(b);
 }

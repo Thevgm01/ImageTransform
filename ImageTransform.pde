@@ -1,6 +1,6 @@
 // INITIALIZATION //
 final boolean FULLSCREEN = false;
-final int //WIDTH = 1920, HEIGHT = 1080;
+      int //WIDTH = 1920, HEIGHT = 1080;
           WIDTH = 1600, HEIGHT = 900;
           //WIDTH = 800, HEIGHT = 450;
 final int HALF_WIDTH = WIDTH / 2, HALF_HEIGHT = HEIGHT / 2;
@@ -41,8 +41,8 @@ boolean defaultLegacyAnalysis = legacyAnalysis;
 final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
 
 ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> startImage_HSB_cube;
-final int HSB_CUBE_SIZE = 64;
-final int HSB_CUBE_COLOR_DEPTH_SCALE = 256 / HSB_CUBE_SIZE;
+final int HSB_CUBE_DIMENSIONS = 64;
+final int HSB_CUBE_COLOR_DEPTH_SCALE = 256 / HSB_CUBE_DIMENSIONS;
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
@@ -66,7 +66,7 @@ boolean record = false;
 String recordingFilename = "frames/frame_#####";
 
 void settings() {
-  if(FULLSCREEN) fullScreen();
+  if(FULLSCREEN) fullScreen(0);
   else size(WIDTH, HEIGHT); 
 }
 
@@ -90,11 +90,11 @@ void setup() {
   newOrder = new int[TOTAL_SIZE];
 
   startImage_HSB_cube = new ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>();
-  for(int i = 0; i < HSB_CUBE_SIZE; i++) {
+  for(int i = 0; i < HSB_CUBE_DIMENSIONS; i++) {
     startImage_HSB_cube.add(new ArrayList<ArrayList<ArrayList<Integer>>>());
-    for(int j = 0; j < HSB_CUBE_SIZE; j++) {
+    for(int j = 0; j < HSB_CUBE_DIMENSIONS; j++) {
       startImage_HSB_cube.get(i).add(new ArrayList<ArrayList<Integer>>());
-      for(int k = 0; k < HSB_CUBE_SIZE; k++) {
+      for(int k = 0; k < HSB_CUBE_DIMENSIONS; k++) {
         startImage_HSB_cube.get(i).get(j).add(new ArrayList<Integer>());
       }
     }

@@ -111,6 +111,7 @@ void resetAnimator() {
   usingStoredCoords = false;
   
   // OVERRIDES //
+  //curAnimation = ANIMATION_SPIRAL;
   //curAnimation = ANIMATION_EVAPORATE;
   //curAnimation = ANIMATION_FALLING_SAND;
   //easeMethodX = 2;
@@ -223,7 +224,7 @@ void animatePixel_spiral(int[] coords) {
   float endDist = dist(coords[X2], coords[Y2], HALF_WIDTH, HALF_HEIGHT);
   
   float angleDiff = endAngle - startAngle;
-  while(angleDiff < 0) angleDiff += TWO_PI;
+  while(angleDiff < PI/8) angleDiff += TWO_PI;
   if(direction == -1) angleDiff = TWO_PI - angleDiff;
   
   float radiusDiff = endDist - startDist;

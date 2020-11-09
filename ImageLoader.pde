@@ -3,10 +3,12 @@ final String IMAGES_DIR =
 //"C:/Users/thevg/Desktop/Processing/Projects/Images/Spaceships";
 //"C:/Users/thevg/Desktop/Processing/Projects/Images/Landscapes";
 //"C:/Users/thevg/Pictures/Makoto Niijima Archive";
+//"E:/Pictures/Wallpapers/Favorites";
 
 final String IMAGES_LIST_FILE = 
 //"";
-"C:/Users/thevg/Pictures/Wallpapers/list.txt";
+//"C:/Users/thevg/Pictures/Wallpapers/list.txt";
+"H:/Pictures/Wallpapers/list.txt";
 
 int imagesListFileSize = 0;
 

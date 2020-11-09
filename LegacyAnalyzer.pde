@@ -1,3 +1,9 @@
+void analyzeStartImage_legacy() {
+  for(int i = 0; i < NUM_THREADS; i++) {
+    thread("findBestFitThread" + i + "_legacy");
+  }
+}
+
 void findBestFitThread0_legacy() { findBestFitThread_legacy(0); }
 void findBestFitThread1_legacy() { findBestFitThread_legacy(1); }
 void findBestFitThread2_legacy() { findBestFitThread_legacy(2); }
@@ -6,12 +12,6 @@ void findBestFitThread4_legacy() { findBestFitThread_legacy(4); }
 void findBestFitThread5_legacy() { findBestFitThread_legacy(5); }
 void findBestFitThread6_legacy() { findBestFitThread_legacy(6); }
 void findBestFitThread7_legacy() { findBestFitThread_legacy(7); }
-
-void analyzeStartImage_legacy() {
-  for(int i = 0; i < NUM_THREADS; i++) {
-    thread("findBestFitThread" + i + "_legacy");
-  }
-}
 
 void findBestFitThread_legacy(int offset) {
   for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {          
