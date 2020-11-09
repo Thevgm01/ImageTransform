@@ -11,16 +11,16 @@ void analyzeStartImage() {
 
   for(int i = 0; i < TOTAL_SIZE; i++) {
     color pixel = startImg.pixels[i];
-    int pixelHue = pixel >> HUE & 0xff,
-        pixelSat = pixel >> SATURATION & 0xff,
-        pixelBrt = pixel >> BRIGHTNESS & 0xff;
+    int pixelHue = (pixel >> HUE & 0xff) >> HSB_CUBE_BIT_SHIFT,
+        pixelSat = (pixel >> SATURATION & 0xff) >> HSB_CUBE_BIT_SHIFT,
+        pixelBrt = (pixel >> BRIGHTNESS & 0xff) >> HSB_CUBE_BIT_SHIFT;
     if(ignoreBlack && pixelBrt == 0) {
       continue;
     }
     startImage_HSB_cube
-      .get(pixelHue / HSB_CUBE_COLOR_DEPTH_SCALE)
-      .get(pixelSat / HSB_CUBE_COLOR_DEPTH_SCALE)
-      .get(pixelBrt / HSB_CUBE_COLOR_DEPTH_SCALE)
+      .get(pixelHue)
+      .get(pixelSat)
+      .get(pixelBrt)
       .add(i);
   }
 
@@ -49,21 +49,17 @@ void findBestFitThread(int offset) {
 // given pixel from the end image
 void findBestFit(int index) {
   color target = endImg.pixels[index];  
-  int targetHue = target >> HUE & 0xff,
-      targetSat = target >> SATURATION & 0xff,
-      targetBrt = target >> BRIGHTNESS & 0xff;
+  int targetHue = (target >> HUE & 0xff) >> HSB_CUBE_BIT_SHIFT,
+      targetSat = (target >> SATURATION & 0xff) >> HSB_CUBE_BIT_SHIFT,
+      targetBrt = (target >> BRIGHTNESS & 0xff) >> HSB_CUBE_BIT_SHIFT;
      
   if(ignoreBlack && targetBrt == 0) {
     newOrder[index] = -1;  
     return;
   }
-  
-  int x = targetHue / HSB_CUBE_COLOR_DEPTH_SCALE,
-      y = targetSat / HSB_CUBE_COLOR_DEPTH_SCALE,
-      z = targetBrt / HSB_CUBE_COLOR_DEPTH_SCALE;
-  
+    
   ArrayList<Integer> candidates = new ArrayList<Integer>();
-  addAllIfNotNull(candidates, testPoint_HSB_cube(x, y, z));
+  addAllIfNotNull(candidates, testPoint_HSB_cube(targetHue, targetSat, targetBrt));
 
   for(int shellSize = 1; shellSize < HSB_CUBE_DIMENSIONS; shellSize++) {
     
@@ -75,39 +71,39 @@ void findBestFit(int index) {
     }
     
     // Front side
-    for(int i = x - shellSize; i <= x + shellSize; i++) {
-       for(int j = y - shellSize; j <= y + shellSize; j++) {
-         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, z - shellSize));
+    for(int i = targetHue - shellSize; i <= targetHue + shellSize; i++) {
+       for(int j = targetSat - shellSize; j <= targetSat + shellSize; j++) {
+         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, targetBrt - shellSize));
        }
     }
     // Back side
-    for(int i = x - shellSize; i <= x + shellSize; i++) {
-       for(int j = y - shellSize; j <= y + shellSize; j++) {
-         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, z + shellSize));
+    for(int i = targetHue - shellSize; i <= targetHue + shellSize; i++) {
+       for(int j = targetSat - shellSize; j <= targetSat + shellSize; j++) {
+         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, targetBrt + shellSize));
        }
     }
     // Left side (minus front and back edges)
-    for(int j = y - shellSize; j <= y + shellSize; j++) {
-      for(int k = z - shellSize + 1; k < z + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(x - shellSize, j, k));
+    for(int j = targetSat - shellSize; j <= targetSat + shellSize; j++) {
+      for(int k = targetBrt - shellSize + 1; k < targetBrt + shellSize; k++) {
+        addAllIfNotNull(candidates, testPoint_HSB_cube(targetHue - shellSize, j, k));
       }
     }
     // Right side (minus front and back edges)
-    for(int j = y - shellSize; j <= y + shellSize; j++) {
-      for(int k = z - shellSize + 1; k < z + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(x + shellSize, j, k));
+    for(int j = targetSat - shellSize; j <= targetSat + shellSize; j++) {
+      for(int k = targetBrt - shellSize + 1; k < targetBrt + shellSize; k++) {
+        addAllIfNotNull(candidates, testPoint_HSB_cube(targetHue + shellSize, j, k));
       }
     }
     // Bottom side (minus front and back edges, left and right edges)
-    for(int i = x - shellSize + 1; i < x + shellSize; i++) {
-      for(int k = z - shellSize + 1; k < z + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(i, y - shellSize, k));
+    for(int i = targetHue - shellSize + 1; i < targetHue + shellSize; i++) {
+      for(int k = targetBrt - shellSize + 1; k < targetBrt + shellSize; k++) {
+        addAllIfNotNull(candidates, testPoint_HSB_cube(i, targetSat - shellSize, k));
       }
     }
     // Top side (minus front and back edges, left and right edges)
-    for(int i = x - shellSize + 1; i < x + shellSize; i++) {
-      for(int k = z - shellSize + 1; k < z + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(i, y + shellSize, k));
+    for(int i = targetHue - shellSize + 1; i < targetHue + shellSize; i++) {
+      for(int k = targetBrt - shellSize + 1; k < targetBrt + shellSize; k++) {
+        addAllIfNotNull(candidates, testPoint_HSB_cube(i, targetSat + shellSize, k));
       }
     }
   }

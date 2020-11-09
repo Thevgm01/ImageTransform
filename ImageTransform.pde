@@ -43,6 +43,7 @@ final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
 ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> startImage_HSB_cube;
 final int HSB_CUBE_DIMENSIONS = 64;
 final int HSB_CUBE_COLOR_DEPTH_SCALE = 256 / HSB_CUBE_DIMENSIONS;
+final int HSB_CUBE_BIT_SHIFT = (int)sqrt(HSB_CUBE_COLOR_DEPTH_SCALE);
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
