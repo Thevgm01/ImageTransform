@@ -41,9 +41,8 @@ boolean defaultLegacyAnalysis = legacyAnalysis;
 final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
 
 ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> startImage_HSB_cube;
-final int RGB_CUBE_DIMENSIONS = 64;
-//final int RGB_CUBE_COLOR_DEPTH_SCALE = 256 / RGB_CUBE_DIMENSIONS;
-final int RGB_CUBE_BIT_SHIFT = (int)sqrt(256 / RGB_CUBE_DIMENSIONS);
+final int RGB_CUBE_BIT_SHIFT = 2;
+final int RGB_CUBE_DIMENSIONS = (int)pow(2, 8 - RGB_CUBE_BIT_SHIFT);
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
