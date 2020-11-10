@@ -303,51 +303,53 @@ void animatePixel_burstPhysics(int[] coords) {
   //float gravity = 0.1f;
   //float gravity = random(0.18f, 0.2f);
   //float gravity = noiseTable[coords[Y1]][coords[X1]] / 5f;
-  float gravity = 0.0f;
+  float gravity = 0f;
   //float xVel = startVel * ((coords[X1] - HALF_WIDTH) / 5f);// + cos(startAngle));
   //float yVel = startVel * ((coords[Y1] - HALF_HEIGHT) / 5f);// + sin(startAngle));
-  float maxSpeed = 5f;
+  float maxSpeed = 8f;
   //float halfMaxSpeed = 0;
-  float tempXVel = ((float)saturation(coords[COLOR]) / 256f) * maxSpeed + cos(startAngle) * randomSpread;
-  float tempYVel = ((float)brightness(coords[COLOR]) / 256f) * maxSpeed * 2 - maxSpeed + sin(startAngle) * randomSpread;
-  float rotation = ((float)hue(coords[COLOR]) / 256f) * 2 * PI;
-  float xVel = tempXVel * cos(rotation) - tempYVel * sin(rotation);
-  float yVel = tempXVel * sin(rotation) + tempYVel * cos(rotation);
+  float tempXVel = ((saturation(coords[COLOR]) + brightness(coords[COLOR])) / 512f) * maxSpeed;
+  float tempYVel = 0;//(brightness(coords[COLOR]) / 256f) * maxSpeed * 2 - maxSpeed;
+  float rotation = (hue(coords[COLOR]) / 256f) * 2 * PI;
+  float xVel = tempXVel * cos(rotation) - tempYVel * sin(rotation) + cos(startAngle) * randomSpread;
+  float yVel = tempXVel * sin(rotation) + tempYVel * cos(rotation) + sin(startAngle) * randomSpread;
   //float xVel = tempXVel;
   //float yVel = tempYVel;
   
   float speedDecay = 0.998f;
-  
+    
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
-     //<>// //<>// //<>//
-    newX += xVel;
-    if(newX < 0) {
-      newX = -newX;
-      xVel = -xVel;
-    } else if(newX > width - 2) {
-      newX = 2 * width - newX - 2;
-      xVel = -xVel;
-    } else {
-      xVel *= 0.995f;
-    }
+
+    newX += xVel; //<>//
+    xVel *= 0.995f;
     
     newY += yVel;
     yVel += gravity;
-    if(newY < 0) {
-      newY = -newY;
+    yVel *= speedDecay;
+
+    float plotX = round(lerp(newX, coords[X2], easing[frame][easeMethodX]));
+    if(plotX < 0) {
+      plotX = 0;
+      newX = 0;
+      xVel = -xVel;
+    } else if(plotX >= width) {
+      plotX = width - 1;
+      newX = width - 1;
+      xVel = -xVel;
+    }
+    
+    float plotY = round(lerp(newY, coords[Y2], easing[frame][easeMethodY]));
+    if(plotY < 0) {
+      plotY = 0;
+      newY = 0;
       yVel = -yVel;
-    } else if(newY > height - 2) {
-      newY = 2 * height - newY - 4;
+    } else if(plotY >= height) {
+      plotY = height - 1;
+      newY = height - 1;
       yVel = -yVel;
-    } else {
-      yVel *= speedDecay;
     }
 
-    plot(
-      round(lerp(newX, coords[X2], easing[frame][easeMethodX])),
-      round(lerp(newY, coords[Y2], easing[frame][easeMethodY])), 
-      coords[COLOR],
-      frame);
+    plot(plotX, plotY, coords[COLOR], frame);
   }
 }
 
