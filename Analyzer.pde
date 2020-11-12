@@ -1,29 +1,22 @@
 final int RED = 16, GREEN = 8, BLUE = 0;
 
 void analyzeStartImage() {
-  for(int i = 0; i < RGB_CUBE_DIMENSIONS; i++) {
-    for(int j = 0; j < RGB_CUBE_DIMENSIONS; j++) {
-      for(int k = 0; k < RGB_CUBE_DIMENSIONS; k++) {
-        startImage_HSB_cube.get(i).get(j).get(k).clear();
-      }
-    }
-  }
-
-  for(int i = 0; i < TOTAL_SIZE; i++) {
+  for(int i = 0; i < RGB_CUBE_DIMENSIONS; ++i)
+    for(int j = 0; j < RGB_CUBE_DIMENSIONS; ++j)
+      for(int k = 0; k < RGB_CUBE_DIMENSIONS; ++k)
+        startImage_RGB_cube[i][j][k][0] = 0;
+  
+  for(int i = 0; i < TOTAL_SIZE; ++i) {
     color pixel = startImg.pixels[i];
     if(ignoreBlack && brightness(pixel) == 0) continue;
     
     int pixelR = (pixel >> RED & 0xff) >> RGB_CUBE_BIT_SHIFT,
         pixelG = (pixel >> GREEN & 0xff) >> RGB_CUBE_BIT_SHIFT,
         pixelB = (pixel >> BLUE & 0xff) >> RGB_CUBE_BIT_SHIFT;
-    startImage_HSB_cube
-      .get(pixelR)
-      .get(pixelG)
-      .get(pixelB)
-      .add(i);
+    addIndexToSizeArray(startImage_RGB_cube[pixelR][pixelG][pixelB], i);
   }
 
-  for(int i = 0; i < NUM_THREADS; i++) {
+  for(int i = 0; i < NUM_THREADS; ++i) {
     thread("findBestFitThread" + i);
   }
 }
@@ -57,74 +50,84 @@ void findBestFit(int index) {
       targetG = (target >> GREEN & 0xff) >> RGB_CUBE_BIT_SHIFT,
       targetB = (target >> BLUE & 0xff) >> RGB_CUBE_BIT_SHIFT;
 
-  ArrayList<Integer> candidates = new ArrayList<Integer>();
-  addAllIfNotNull(candidates, testPoint_HSB_cube(targetR, targetG, targetB));
+  int[] candidates = new int[RGB_CUBE_MAX_RANDOM_SAMPLES];
+  addArrayToSizeArray(candidates, startImage_RGB_cube[targetR][targetG][targetB]);
 
   for(int shellSize = 1; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
     
-    if(candidates.size() > 0) {
-      if(candidates.size() > 1) newOrder[index] = candidates.get((int)random(candidates.size()));
-      else newOrder[index] = candidates.get(0);
-      candidates = null;
+    if(candidates[0] > 0) {
+      if(candidates[0] > 1) newOrder[index] = candidates[(int)random(candidates[0]) + 1];
+      else newOrder[index] = candidates[1];
       return;
     }
     
-    // Front side
-    for(int i = targetR - shellSize; i <= targetR + shellSize; i++) {
-       for(int j = targetG - shellSize; j <= targetG + shellSize; j++) {
-         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, targetB - shellSize));
-       }
-    }
-    // Back side
-    for(int i = targetR - shellSize; i <= targetR + shellSize; i++) {
-       for(int j = targetG - shellSize; j <= targetG + shellSize; j++) {
-         addAllIfNotNull(candidates, testPoint_HSB_cube(i, j, targetB + shellSize));
-       }
-    }
-    // Left side (minus front and back edges)
-    for(int j = targetG - shellSize; j <= targetG + shellSize; j++) {
-      for(int k = targetB - shellSize + 1; k < targetB + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(targetR - shellSize, j, k));
-      }
-    }
-    // Right side (minus front and back edges)
-    for(int j = targetG - shellSize; j <= targetG + shellSize; j++) {
-      for(int k = targetB - shellSize + 1; k < targetB + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(targetR + shellSize, j, k));
-      }
-    }
-    // Bottom side (minus front and back edges, left and right edges)
-    for(int i = targetR - shellSize + 1; i < targetR + shellSize; i++) {
-      for(int k = targetB - shellSize + 1; k < targetB + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(i, targetG - shellSize, k));
-      }
-    }
-    // Top side (minus front and back edges, left and right edges)
-    for(int i = targetR - shellSize + 1; i < targetR + shellSize; i++) {
-      for(int k = targetB - shellSize + 1; k < targetB + shellSize; k++) {
-        addAllIfNotNull(candidates, testPoint_HSB_cube(i, targetG + shellSize, k));
-      }
-    }
-  }
-}
-
-ArrayList<Integer> testPoint_HSB_cube(int x, int y, int z) {
-  if(x < 0 || x >= RGB_CUBE_DIMENSIONS
-  || y < 0 || y >= RGB_CUBE_DIMENSIONS
-  || z < 0 || z >= RGB_CUBE_DIMENSIONS)
-    return null;
+    int minX = targetR - shellSize,
+        maxX = targetR + shellSize,
+        minY = targetG - shellSize,
+        maxY = targetG + shellSize,
+        minZ = targetB - shellSize,
+        maxZ = targetB + shellSize;
     
-  ArrayList<Integer> options = startImage_HSB_cube.get(x).get(y).get(z);
-  if(options.size() > 0) {
-    //if(options.size() > 1) newOrder[index] = options.get((int)random(options.size()));
-    //else newOrder[index] = options.get(0);
-    return options;
+    // Front side
+    if(testCubeBounds(minZ))
+      for(int x = minX; x <= maxX; ++x)
+         for(int y = minY; y <= maxY; ++y)
+           if(testCubeBounds(x, y))
+             addArrayToSizeArray(candidates, startImage_RGB_cube[x][y][minZ]);
+
+    // Back side
+    if(testCubeBounds(maxZ))
+    for(int x = minX; x <= maxX; ++x)
+       for(int y = minY; y <= maxY; ++y)
+         if(testCubeBounds(x, y))
+           addArrayToSizeArray(candidates, startImage_RGB_cube[x][y][maxZ]);
+
+    // Left side (minus front and back edges)
+    if(testCubeBounds(minX))
+      for(int y = minY; y <= maxY; ++y)
+        for(int z = minZ + 1; z < maxZ; ++z)
+          if(testCubeBounds(y, z))
+            addArrayToSizeArray(candidates, startImage_RGB_cube[minX][y][z]);
+
+    // Right side (minus front and back edges)
+    if(testCubeBounds(maxX))
+      for(int y = minY; y <= maxY; ++y)
+        for(int z = minZ + 1; z < maxZ; ++z)
+          if(testCubeBounds(y, z))
+            addArrayToSizeArray(candidates, startImage_RGB_cube[maxX][y][z]);
+
+    // Bottom side (minus front and back edges, left and right edges)
+    if(testCubeBounds(minY))
+      for(int x = minX + 1; x < maxX; ++x)
+        for(int z = minZ + 1; z < maxZ; ++z)
+          if(testCubeBounds(x, z))
+            addArrayToSizeArray(candidates, startImage_RGB_cube[x][minY][z]);
+          
+    // Top side (minus front and back edges, left and right edges)
+    if(testCubeBounds(maxY))
+      for(int x = minX + 1; x < maxX; ++x)
+        for(int z = minZ + 1; z < maxZ; ++z)
+          if(testCubeBounds(x, z))
+            addArrayToSizeArray(candidates, startImage_RGB_cube[x][maxY][z]);
   }
-  
-  return null;
 }
 
-void addAllIfNotNull(ArrayList a, ArrayList b) {
-  if(b == null) return;
-  a.addAll(b);
+void addIndexToSizeArray(int[] array, int index) {
+   if(array[0] >= RGB_CUBE_MAX_RANDOM_SAMPLES - 1) return;
+   array[++array[0]] = index;
+}
+
+void addArrayToSizeArray(int[] mainArray, int[] otherArray) {
+  for(int i = 1; i <= otherArray[0]; ++i) {
+    if(mainArray[0] >= RGB_CUBE_MAX_RANDOM_SAMPLES - 1) return;
+    mainArray[++mainArray[0]] = otherArray[i];
+  }
+}
+
+boolean testCubeBounds(int a) {
+  return a >= 0 && a < RGB_CUBE_DIMENSIONS;
+}
+
+boolean testCubeBounds(int a, int b) {
+  return testCubeBounds(a) && testCubeBounds(b);
 }
