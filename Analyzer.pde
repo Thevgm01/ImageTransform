@@ -1,22 +1,22 @@
 final int RED = 16, GREEN = 8, BLUE = 0;
 
 int coordsToIndex(int x, int y, int z) {
-  return x * RGB_CUBE_X_OFFSET + y * RGB_CUBE_Y_OFFSET + z * RGB_CUBE_Z_OFFSET; 
+  return (x << RGB_CUBE_X_SHIFT) + (y << RGB_CUBE_Y_SHIFT) + (z << RGB_CUBE_Z_SHIFT); 
 }
 
 void analyzeStartImage() {
   for(int i = 0; i < RGB_CUBE_DIMENSIONS; ++i)
     for(int j = 0; j < RGB_CUBE_DIMENSIONS; ++j)
       for(int k = 0; k < RGB_CUBE_DIMENSIONS; ++k)
-        startImage_RGB_cube[coordsToIndex(i, j, k) + 0] = 0;
+        startImage_RGB_cube[coordsToIndex(i, j, k)] = 0;
   
   for(int i = 0; i < TOTAL_SIZE; ++i) {
     color pixel = startImg.pixels[i];
     if(ignoreBlack && brightness(pixel) == 0) continue;
     
-    int pixelR = (pixel >> RED & 0xff) >> RGB_CUBE_BIT_SHIFT,
-        pixelG = (pixel >> GREEN & 0xff) >> RGB_CUBE_BIT_SHIFT,
-        pixelB = (pixel >> BLUE & 0xff) >> RGB_CUBE_BIT_SHIFT;
+    int pixelR = (pixel >> RED & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
+        pixelG = (pixel >> GREEN & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
+        pixelB = (pixel >> BLUE & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT;
     addIndexToSizeArray(startImage_RGB_cube, coordsToIndex(pixelR, pixelG, pixelB), i);
   }
 
@@ -50,9 +50,9 @@ void findBestFit(int index) {
     return;
   }
   
-  int targetR = (target >> RED & 0xff) >> RGB_CUBE_BIT_SHIFT,
-      targetG = (target >> GREEN & 0xff) >> RGB_CUBE_BIT_SHIFT,
-      targetB = (target >> BLUE & 0xff) >> RGB_CUBE_BIT_SHIFT;
+  int targetR = (target >> RED & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
+      targetG = (target >> GREEN & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
+      targetB = (target >> BLUE & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT;
 
   int[] candidates = new int[RGB_CUBE_MAX_RANDOM_SAMPLES];
   addArrayToSizeArray(candidates, startImage_RGB_cube, coordsToIndex(targetR, targetG, targetB));

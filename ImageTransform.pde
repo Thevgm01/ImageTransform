@@ -40,13 +40,17 @@ boolean legacyAnalysis = false;
 boolean defaultLegacyAnalysis = legacyAnalysis;
 final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
 
-final int RGB_CUBE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
-final int RGB_CUBE_DIMENSIONS = (int)pow(2, 8 - RGB_CUBE_BIT_SHIFT);
-final int RGB_CUBE_MAX_RANDOM_SAMPLES = 1024;
-final int RGB_CUBE_X_OFFSET = RGB_CUBE_MAX_RANDOM_SAMPLES;
-final int RGB_CUBE_Y_OFFSET = RGB_CUBE_X_OFFSET * RGB_CUBE_DIMENSIONS;
-final int RGB_CUBE_Z_OFFSET = RGB_CUBE_Y_OFFSET * RGB_CUBE_DIMENSIONS;
-int[] startImage_RGB_cube = new int[(int)pow(RGB_CUBE_DIMENSIONS, 3) * RGB_CUBE_MAX_RANDOM_SAMPLES];
+final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
+final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256
+final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT;
+
+final int RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT = 9;
+final int RGB_CUBE_MAX_RANDOM_SAMPLES = 1 << RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT;
+
+final int RGB_CUBE_X_SHIFT = RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT;
+final int RGB_CUBE_Y_SHIFT = RGB_CUBE_X_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
+final int RGB_CUBE_Z_SHIFT = RGB_CUBE_Y_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
+int[] startImage_RGB_cube = new int[1 << (RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT)];
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
