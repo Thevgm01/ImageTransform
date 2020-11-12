@@ -43,10 +43,10 @@ final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
 final int RGB_CUBE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
 final int RGB_CUBE_DIMENSIONS = (int)pow(2, 8 - RGB_CUBE_BIT_SHIFT);
 final int RGB_CUBE_MAX_RANDOM_SAMPLES = 1024;
-int[][][][] startImage_RGB_cube = new int[RGB_CUBE_DIMENSIONS]
-                                         [RGB_CUBE_DIMENSIONS]
-                                         [RGB_CUBE_DIMENSIONS]
-                                         [RGB_CUBE_MAX_RANDOM_SAMPLES];
+final int RGB_CUBE_X_OFFSET = RGB_CUBE_MAX_RANDOM_SAMPLES;
+final int RGB_CUBE_Y_OFFSET = RGB_CUBE_X_OFFSET * RGB_CUBE_DIMENSIONS;
+final int RGB_CUBE_Z_OFFSET = RGB_CUBE_Y_OFFSET * RGB_CUBE_DIMENSIONS;
+int[] startImage_RGB_cube = new int[(int)pow(RGB_CUBE_DIMENSIONS, 3) * RGB_CUBE_MAX_RANDOM_SAMPLES];
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;

@@ -1,10 +1,14 @@
 final int RED = 16, GREEN = 8, BLUE = 0;
 
+int coordsToIndex(int x, int y, int z) {
+  return x * RGB_CUBE_X_OFFSET + y * RGB_CUBE_Y_OFFSET + z * RGB_CUBE_Z_OFFSET; 
+}
+
 void analyzeStartImage() {
   for(int i = 0; i < RGB_CUBE_DIMENSIONS; ++i)
     for(int j = 0; j < RGB_CUBE_DIMENSIONS; ++j)
       for(int k = 0; k < RGB_CUBE_DIMENSIONS; ++k)
-        startImage_RGB_cube[i][j][k][0] = 0;
+        startImage_RGB_cube[coordsToIndex(i, j, k) + 0] = 0;
   
   for(int i = 0; i < TOTAL_SIZE; ++i) {
     color pixel = startImg.pixels[i];
@@ -13,7 +17,7 @@ void analyzeStartImage() {
     int pixelR = (pixel >> RED & 0xff) >> RGB_CUBE_BIT_SHIFT,
         pixelG = (pixel >> GREEN & 0xff) >> RGB_CUBE_BIT_SHIFT,
         pixelB = (pixel >> BLUE & 0xff) >> RGB_CUBE_BIT_SHIFT;
-    addIndexToSizeArray(startImage_RGB_cube[pixelR][pixelG][pixelB], i);
+    addIndexToSizeArray(startImage_RGB_cube, coordsToIndex(pixelR, pixelG, pixelB), i);
   }
 
   for(int i = 0; i < NUM_THREADS; ++i) {
@@ -51,7 +55,7 @@ void findBestFit(int index) {
       targetB = (target >> BLUE & 0xff) >> RGB_CUBE_BIT_SHIFT;
 
   int[] candidates = new int[RGB_CUBE_MAX_RANDOM_SAMPLES];
-  addArrayToSizeArray(candidates, startImage_RGB_cube[targetR][targetG][targetB]);
+  addArrayToSizeArray(candidates, startImage_RGB_cube, coordsToIndex(targetR, targetG, targetB));
 
   for(int shellSize = 1; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
     
@@ -73,54 +77,54 @@ void findBestFit(int index) {
       for(int x = minX; x <= maxX; ++x)
          for(int y = minY; y <= maxY; ++y)
            if(testCubeBounds(x, y))
-             addArrayToSizeArray(candidates, startImage_RGB_cube[x][y][minZ]);
+             addArrayToSizeArray(candidates, startImage_RGB_cube, coordsToIndex(x, y, minZ));
 
     // Back side
     if(testCubeBounds(maxZ))
-    for(int x = minX; x <= maxX; ++x)
-       for(int y = minY; y <= maxY; ++y)
-         if(testCubeBounds(x, y))
-           addArrayToSizeArray(candidates, startImage_RGB_cube[x][y][maxZ]);
+      for(int x = minX; x <= maxX; ++x)
+         for(int y = minY; y <= maxY; ++y)
+           if(testCubeBounds(x, y))
+             addArrayToSizeArray(candidates, startImage_RGB_cube, coordsToIndex(x, y, maxZ));
 
     // Left side (minus front and back edges)
     if(testCubeBounds(minX))
       for(int y = minY; y <= maxY; ++y)
         for(int z = minZ + 1; z < maxZ; ++z)
           if(testCubeBounds(y, z))
-            addArrayToSizeArray(candidates, startImage_RGB_cube[minX][y][z]);
+            addArrayToSizeArray(candidates, startImage_RGB_cube, coordsToIndex(minX, y, z));
 
     // Right side (minus front and back edges)
     if(testCubeBounds(maxX))
       for(int y = minY; y <= maxY; ++y)
         for(int z = minZ + 1; z < maxZ; ++z)
           if(testCubeBounds(y, z))
-            addArrayToSizeArray(candidates, startImage_RGB_cube[maxX][y][z]);
+            addArrayToSizeArray(candidates, startImage_RGB_cube, coordsToIndex(maxX, y, z));
 
     // Bottom side (minus front and back edges, left and right edges)
     if(testCubeBounds(minY))
       for(int x = minX + 1; x < maxX; ++x)
         for(int z = minZ + 1; z < maxZ; ++z)
           if(testCubeBounds(x, z))
-            addArrayToSizeArray(candidates, startImage_RGB_cube[x][minY][z]);
+            addArrayToSizeArray(candidates, startImage_RGB_cube, coordsToIndex(x, minY, z));
           
     // Top side (minus front and back edges, left and right edges)
     if(testCubeBounds(maxY))
       for(int x = minX + 1; x < maxX; ++x)
         for(int z = minZ + 1; z < maxZ; ++z)
           if(testCubeBounds(x, z))
-            addArrayToSizeArray(candidates, startImage_RGB_cube[x][maxY][z]);
+            addArrayToSizeArray(candidates, startImage_RGB_cube, coordsToIndex(x, maxY, z));
   }
 }
 
-void addIndexToSizeArray(int[] array, int index) {
-   if(array[0] >= RGB_CUBE_MAX_RANDOM_SAMPLES - 1) return;
-   array[++array[0]] = index;
+void addIndexToSizeArray(int[] array, int start, int newVal) {
+   if(array[start] >= RGB_CUBE_MAX_RANDOM_SAMPLES - 1) return;
+   array[start + ++array[start]] = newVal;
 }
 
-void addArrayToSizeArray(int[] mainArray, int[] otherArray) {
-  for(int i = 1; i <= otherArray[0]; ++i) {
+void addArrayToSizeArray(int[] mainArray, int[] otherArray, int otherStart) {
+  for(int i = 1; i <= otherArray[otherStart]; ++i) {
     if(mainArray[0] >= RGB_CUBE_MAX_RANDOM_SAMPLES - 1) return;
-    mainArray[++mainArray[0]] = otherArray[i];
+    mainArray[++mainArray[0]] = otherArray[i + otherStart];
   }
 }
 
