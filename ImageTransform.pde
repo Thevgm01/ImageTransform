@@ -44,7 +44,7 @@ final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB
 final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256
 final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT;
 
-final int RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT = 9;
+final int RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT = 10;
 final int RGB_CUBE_MAX_RANDOM_SAMPLES = 1 << RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT;
 
 final int RGB_CUBE_X_SHIFT = RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT;
@@ -66,7 +66,9 @@ int curFrame;
 int averageTrackerLastValue = 0;
 int averageTrackerStartFrame = 0;
 long averageTrackerStartTime = 0;
-float averageTracker;
+final int AVERAGE_TRACKER_LENGTH = DESIRED_FRAMERATE;
+int[] averageTrackerFrames = new int[AVERAGE_TRACKER_LENGTH];
+float averageTracker = 0;
 float progressSlide = 0f;
 float progressSlideSpeed = PI / DESIRED_FRAMERATE;
 

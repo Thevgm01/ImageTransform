@@ -1,3 +1,5 @@
+int lastCur;
+
 void showAllInfo(int cur, int max, String label) {
   if(showCalculatedPixels && curState == 0) {
     noStroke();
@@ -12,7 +14,8 @@ void showAllInfo(int cur, int max, String label) {
     tint(255, 220);
     image(nextImgSmall, width - nextImgSmall.width, 0);
   }  
-  advanceAverageTracker(cur);
+  advanceAverageTracker(cur - lastCur);
+  lastCur = cur;
 }
 
 void showAnalysisText(int cur, int max, String label) {  
@@ -94,17 +97,16 @@ void showProgressBorder(float frac) {
 }
 
 void advanceAverageTracker(int nextVal) {
-  increaseAverage(nextVal);
-  averageTrackerLastValue = nextVal;
+  averageTrackerFrames[frameCount % AVERAGE_TRACKER_LENGTH] = nextVal;
+  averageTracker = 0;
+  for(int i = 0; i < AVERAGE_TRACKER_LENGTH; ++i)
+    averageTracker += (float)averageTrackerFrames[i] / AVERAGE_TRACKER_LENGTH;
 }
 
 void resetAverage() {
   averageTrackerLastValue = 0;
   averageTrackerStartFrame = frameCount;
   averageTrackerStartTime = millis();
-  averageTracker = 0;
-}
-
-void increaseAverage(float value) {
-  averageTracker += (value - averageTrackerLastValue - averageTracker)/(frameCount - averageTrackerStartFrame + 1);
+  averageTrackerFrames = new int[AVERAGE_TRACKER_LENGTH];
+  lastCur = 0;
 }
