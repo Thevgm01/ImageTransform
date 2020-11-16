@@ -25,7 +25,8 @@ final boolean showAnalysisGraph = true;
 final boolean showProgress = true;
 final boolean showProgressBar = false;
 final boolean showProgressBorder = true;
-final boolean showNextImage = false;
+final boolean showNextImage = true;
+final boolean showNextImageCalculatedPixels = true;
 
 // IMAGES IN MEMORY //
 String startImgName;
@@ -88,16 +89,12 @@ void setup() {
   frameRate(DESIRED_FRAMERATE);
   colorMode(HSB);
   
-  startImgName = getRandomImageName("");
-  endImgName = getRandomImageName(startImgName);
-  startImg = loadImage(startImgName);
-  endImg = loadImage(endImgName);
-  nextImgSmall = endImg.copy();
-  resizeImage(startImg, width, height);
-  resizeImage(endImg, width, height);
-  resizeImage(nextImgSmall, width/4, height/3);
-  startImg = imageOnBlack(startImg);
-  endImg = imageOnBlack(endImg);
+  loadNextImage();
+  startImgName = nextImgName;
+  startImg = nextImg;
+  loadNextImage();
+  endImgName = nextImgName;
+  endImg = nextImg;
   
   startColorsRandomized = new color[TOTAL_SIZE];
   startIndexesRandomized = new int[TOTAL_SIZE];
@@ -127,10 +124,9 @@ void keyPressed() {
 }
 
 void draw() {
-  int numAnalyzed = 0, numLegacyAnimated = 0, numAnimated = 0;
+  int numAnalyzed = 0, numAnimated = 0;
   for(int i = 0; i < NUM_THREADS; i++) {
     numAnalyzed += analysisIndexes[i];
-    numLegacyAnimated += analysisIndexes[i];
     numAnimated += animationIndexes[i];
   }
   
@@ -153,6 +149,7 @@ void draw() {
         showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
       } else {
         background(startImg);
+        showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
         resetAverage();
         if(record) saveFrame(recordingFilename);
         if(SWITCH_TO_LEGACY_ON_SLOWDOWN) {
@@ -166,6 +163,7 @@ void draw() {
           curState++;
           createTransitionAnimation();
         }
+        numAnalyzed = 0;
         curState++;
       }
       break;
@@ -207,7 +205,7 @@ void draw() {
         curFrame++;
       } else { 
         assembledImg = get();
-        if(nextImg == null) thread("loadNextImage");
+        if(nextImgName.equals(endImgName)) thread("loadNextImage");
         curFrame = 0;
         curState++;
       } break;
@@ -237,8 +235,7 @@ void draw() {
       startImgName = endImgName;
       startImg = endImg;
       endImgName = nextImgName;
-      endImg = imageOnBlack(nextImg);
-      nextImg = null;
+      endImg = nextImg;
       
       numAnalyzed = 0;
       numAnimated = 0;

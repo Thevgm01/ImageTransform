@@ -44,14 +44,16 @@ String getRandomImageName(String exclude) {
 }
 
 void loadNextImage() {
-  nextImg = null;
-  while(nextImg == null || nextImg.width < 0 || nextImg.height < 0) {
+  do {
     nextImgName = getRandomImageName(endImgName);
     nextImg = loadImage(nextImgName);
-  }
-  nextImgSmall = nextImg.copy();
+  } while(nextImg == null || nextImg.width < 0 || nextImg.height < 0);
+  
   resizeImage(nextImg, width, height);
-  resizeImage(nextImgSmall, width/4, height/3);
+  nextImg = imageOnBlack(nextImg);
+  
+  nextImgSmall = nextImg.copy();
+  nextImgSmall.resize(width/5, 0);
 }
 
 void resizeImage(PImage img, int w, int h) {
@@ -60,7 +62,10 @@ void resizeImage(PImage img, int w, int h) {
 }
 
 PImage imageOnBlack(PImage img) {
-  background(0);
-  image(img, HALF_WIDTH - img.width/2, HALF_HEIGHT - img.height/2);
-  return get();
+  PImage blackBack = createImage(width, height, RGB);
+  color black = color(0, 0, 0, 255);
+  for(int i = 0; i < blackBack.pixels.length; ++i)
+    blackBack.pixels[i] = black;
+  blackBack.set(HALF_WIDTH - img.width/2, HALF_HEIGHT - img.height/2, img);
+  return blackBack;
 }

@@ -25,6 +25,14 @@ void showAllInfo(int cur, int max, String label) {
   if(showNextImage) {
     tint(255, 220);
     image(nextImgSmall, width - nextImgSmall.width, 0);
+    if(showNextImageCalculatedPixels) {
+      noStroke();
+      fill(255);
+      float lastCurHeight = nextImgSmall.height * (float) lastCur / max;
+      float curHeight = nextImgSmall.height * (float) (cur - lastCur) / max;
+      //if(curHeight < 1) curHeight = 1;
+      rect(width - nextImgSmall.width, ceil(lastCurHeight), nextImgSmall.width, ceil(curHeight));
+    }
   }
   
   lastCur = cur;
