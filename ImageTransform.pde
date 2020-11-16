@@ -5,7 +5,6 @@ final boolean FULLSCREEN = false;
           //WIDTH = 800, HEIGHT = 450;
 final int HALF_WIDTH = WIDTH / 2, HALF_HEIGHT = HEIGHT / 2;
 final int TOTAL_SIZE = WIDTH * HEIGHT;
-final int NUM_TO_CHECK = 2000;
 final int DESIRED_FRAMERATE = 60;
 final int NUM_THREADS = 6;//The number of threads, up to 8
 final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 4;//4;
@@ -36,10 +35,6 @@ PImage nextImgSmall;
 PImage assembledImg;
 PImage[] animationFrames;
 
-boolean legacyAnalysis = false;
-boolean defaultLegacyAnalysis = legacyAnalysis;
-final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
-
 final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
 final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256
 final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT;
@@ -52,6 +47,11 @@ final int RGB_CUBE_Y_SHIFT = RGB_CUBE_X_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
 final int RGB_CUBE_Z_SHIFT = RGB_CUBE_Y_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
 final int RGB_CUBE_LENGTH_SHIFT = RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
 int[] startImage_RGB_cube = new int[1 << RGB_CUBE_LENGTH_SHIFT];
+
+final boolean LEGACY_ANALYSIS = false;
+final int LEGACY_NUM_TO_CHECK = 2000;
+final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = true;
+final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = RGB_CUBE_DIMENSIONS >> 2;
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
@@ -145,10 +145,6 @@ void draw() {
             initializeAnimationFrame = false;
         }
         background(startImg);
-        if(SWITCH_TO_LEGACY_ON_SLOWDOWN && !legacyAnalysis && averageTracker > 0 && averageTracker < 500) {
-          legacyAnalysis = true;
-          resetAll();
-        }
         moveProgressBar(progressSlideSpeed);
       } else {
         background(startImg);
@@ -236,8 +232,6 @@ void draw() {
       numAnalyzed = 0;
       numAnimated = 0;
       
-      legacyAnalysis = defaultLegacyAnalysis;
-      
       resetAll();
   }
   if(showProgress) showProgress(numAnalyzed, numAnimated);
@@ -265,9 +259,9 @@ void resetAll() {
   }
   animationInitializer = 0;
 
-  if(legacyAnalysis) analyzeStartImage_legacy();
+  if(LEGACY_ANALYSIS) analyzeStartImage_legacy();
   else analyzeStartImage();
-  
+ 
   resetAnimator();
   
   curFrame = 0;

@@ -36,8 +36,8 @@ void findBestFit_legacy(int index) {
   int bestFitIndex = -1;
   float bestFitValue = 999999f;
   
-  int startingIndex = (int)random(TOTAL_SIZE - NUM_TO_CHECK);
-  for(int i = startingIndex; i < startingIndex + NUM_TO_CHECK; i++) {
+  int startingIndex = (int)random(TOTAL_SIZE - LEGACY_NUM_TO_CHECK);
+  for(int i = startingIndex; i < startingIndex + LEGACY_NUM_TO_CHECK; i++) {
     color cur = startColorsRandomized[i];
     int curFit = 
       abs(targetHue - (cur >> RED & 0xff)) +

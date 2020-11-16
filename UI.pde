@@ -21,7 +21,6 @@ void showAllInfo(int cur, int max, String label) {
 void showAnalysisText(int cur, int max, String label) {  
   String titles = "Current:\nNext\n\n"
                   + label + "\n" + cur + "/" + max + "\n"
-                  + (legacyAnalysis && curState == 0 ? "LEGACY MODE" : "")
                   + "\npercent:\nper frame:\nseconds:\nper second:\nframerate:";
   String values = startImgName + "\n"
                   + endImgName + "\n\n\n\n\n"

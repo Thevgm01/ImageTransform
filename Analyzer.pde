@@ -57,6 +57,11 @@ void findBestFit(int index) {
 
   for(int shellSize = 1; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
     
+    if(SWITCH_TO_LEGACY_ON_SLOWDOWN && shellSize >= SWITCH_TO_LEGACY_RGB_CUBE_SIZE) {
+      findBestFit_legacy(index);
+      return; 
+    }
+    
     if(candidates[0] > 0) {
       if(candidates[0] > 1) newOrder[index] = candidates[(int)random(candidates[0]) + 1];
       else newOrder[index] = candidates[1];
