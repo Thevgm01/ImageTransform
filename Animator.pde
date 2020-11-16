@@ -320,7 +320,7 @@ void animatePixel_burstPhysics(int[] coords) {
     
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
 
-    newX += xVel; //<>//
+    newX += xVel; //<>// //<>//
     xVel *= 0.995f;
     
     newY += yVel;
@@ -588,9 +588,9 @@ void animatePixel_evaporate(int[] coords) {
   
   //for(int frame = startFrame; frame < startFrame + framesToFinish; frame++) {
   for(int frame = 0; frame < TOTAL_ANIMATION_FRAMES; frame++) {
-    newY = lerp(coords[Y1], coords[Y2] - HEIGHT, easing[frame][DEFAULT]);
+    newY = round(lerp(coords[Y1], coords[Y2] - HEIGHT, easing[frame][DEFAULT]));
     while(newY < 0) {
-      newY += HEIGHT - 1;
+      newY += HEIGHT;
       newX = coords[X2];
     }
     //newX = lerp(coords[X1], coords[X2], easing[frame][DEFAULT]);

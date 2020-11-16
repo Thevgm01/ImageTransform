@@ -100,7 +100,8 @@ void advanceAverageTracker(int nextVal) {
   averageTrackerFrames[frameCount % AVERAGE_TRACKER_LENGTH] = nextVal;
   averageTracker = 0;
   for(int i = 0; i < AVERAGE_TRACKER_LENGTH; ++i)
-    averageTracker += (float)averageTrackerFrames[i] / AVERAGE_TRACKER_LENGTH;
+    averageTracker += (float)averageTrackerFrames[i];
+  averageTracker /= AVERAGE_TRACKER_LENGTH;
 }
 
 void resetAverage() {
