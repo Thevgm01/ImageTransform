@@ -1,3 +1,5 @@
+import java.util.BitSet;
+
 // INITIALIZATION //
 final boolean FULLSCREEN = false;
       int //WIDTH = 1920, HEIGHT = 1080;
@@ -19,6 +21,7 @@ final boolean cycle = true;
 // UI //
 final boolean showCalculatedPixels = false;
 final boolean showAnalysisText = true;
+final boolean showAnalysisGraph = true;
 final boolean showProgress = true;
 final boolean showProgressBar = false;
 final boolean showProgressBorder = true;
@@ -50,25 +53,25 @@ int[] startImage_RGB_cube = new int[1 << RGB_CUBE_LENGTH_SHIFT];
 
 final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
-final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = true;
-final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = RGB_CUBE_DIMENSIONS >> 2;
+final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
+final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
 int[] newOrder;
 
-int[] analyzeIndexes;
-int animationInitializer;
+int[] analysisIndexes;
 int[] animationIndexes;
+BitSet pixelsLegacyAnalyzed;
+int animationInitializer;
 
 int curState;
 int curFrame;
 
-int averageTrackerLastValue = 0;
 int averageTrackerStartFrame = 0;
 long averageTrackerStartTime = 0;
 final int AVERAGE_TRACKER_LENGTH = DESIRED_FRAMERATE;
-int[] averageTrackerFrames = new int[AVERAGE_TRACKER_LENGTH];
+int[] averageTrackerFrames;
 float averageTracker = 0;
 float progressSlide = 0f;
 float progressSlideSpeed = PI / DESIRED_FRAMERATE;
@@ -100,7 +103,7 @@ void setup() {
   startIndexesRandomized = new int[TOTAL_SIZE];
   newOrder = new int[TOTAL_SIZE];
 
-  analyzeIndexes = new int[NUM_THREADS];
+  analysisIndexes = new int[NUM_THREADS];
   animationIndexes = new int[NUM_THREADS];
   if(preAnimate) animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
   
@@ -124,9 +127,10 @@ void keyPressed() {
 }
 
 void draw() {
-  int numAnalyzed = 0, numAnimated = 0;
+  int numAnalyzed = 0, numLegacyAnimated = 0, numAnimated = 0;
   for(int i = 0; i < NUM_THREADS; i++) {
-    numAnalyzed += analyzeIndexes[i];
+    numAnalyzed += analysisIndexes[i];
+    numLegacyAnimated += analysisIndexes[i];
     numAnimated += animationIndexes[i];
   }
   
@@ -146,17 +150,24 @@ void draw() {
         }
         background(startImg);
         moveProgressBar(progressSlideSpeed);
+        showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
       } else {
         background(startImg);
         resetAverage();
         if(record) saveFrame(recordingFilename);
+        if(SWITCH_TO_LEGACY_ON_SLOWDOWN) {
+          int numPixelsLegacyAnalyzed = 0;
+          for(int i = 0; i < pixelsLegacyAnalyzed.length(); ++i)
+            if(pixelsLegacyAnalyzed.get(i)) ++numPixelsLegacyAnalyzed;
+          if(numPixelsLegacyAnalyzed > 0)
+            println("Pixels analyzed with legacy method: " + numPixelsLegacyAnalyzed);
+        }
         if(preAnimate) {
           curState++;
           createTransitionAnimation();
         }
         curState++;
       }
-      showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
       break;
     case 1: // Actively animate the transition
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
@@ -251,12 +262,15 @@ void fadeToImage(PImage back, PImage front, float frac) {
 }
 
 void resetAll() {
+  println(startImgName);
+  
   randomizeImage(startImg.pixels, startColorsRandomized, startIndexesRandomized);
 
   for(int i = 0; i < NUM_THREADS; i++) {
-    analyzeIndexes[i] = 0;
+    analysisIndexes[i] = 0;
     animationIndexes[i] = 0;
   }
+  pixelsLegacyAnalyzed = new BitSet(endImg.pixels.length);
   animationInitializer = 0;
 
   if(LEGACY_ANALYSIS) analyzeStartImage_legacy();

@@ -35,7 +35,7 @@ void findBestFitThread7() { findBestFitThread(7); }
 void findBestFitThread(int offset) {
   for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {          
     findBestFit(i);
-    analyzeIndexes[offset]++;
+    ++analysisIndexes[offset];
   }
 }
 
@@ -59,6 +59,7 @@ void findBestFit(int index) {
     
     if(SWITCH_TO_LEGACY_ON_SLOWDOWN && shellSize >= SWITCH_TO_LEGACY_RGB_CUBE_SIZE) {
       findBestFit_legacy(index);
+      pixelsLegacyAnalyzed.set(index, true);
       return; 
     }
     

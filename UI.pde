@@ -1,20 +1,32 @@
 int lastCur;
 
+ArrayList<Integer> numAnalyzedPerFrame = new ArrayList<Integer>();
+//ArrayList<Integer> totalAnalyzedPerFrame = new ArrayList<Integer>();
+float graphSizeFrac = 0.9f;
+int numAnalyzedPerFrame_maxIndex = 0;
+
 void showAllInfo(int cur, int max, String label) {
+  advanceAverageTracker(cur - lastCur);
+    
   if(showCalculatedPixels && curState == 0) {
     noStroke();
     fill(255);
-    int topOfRectangle = averageTrackerLastValue / width;
+    int topOfRectangle = lastCur / width;
     rect(0, topOfRectangle, width, 1 + cur / width - topOfRectangle);
   }
   if(showAnalysisText) {
     showAnalysisText(cur, max, label);
   }
+  if(showAnalysisGraph) {
+    drawAnalysisGraph(numAnalyzedPerFrame, numAnalyzedPerFrame_maxIndex);
+    //totalAnalyzedPerFrame.add(cur);
+    //drawAnalysisGraph(totalAnalyzedPerFrame, -1);
+  }
   if(showNextImage) {
     tint(255, 220);
     image(nextImgSmall, width - nextImgSmall.width, 0);
-  }  
-  advanceAverageTracker(cur - lastCur);
+  }
+  
   lastCur = cur;
 }
 
@@ -30,6 +42,7 @@ void showAnalysisText(int cur, int max, String label) {
                   + round(averageTracker * DESIRED_FRAMERATE) + "\n"
                   + round(frameRate*10)/10f;
   fill(255);
+  textAlign(BASELINE);
   text(titles, 5, 15);
   text(values, 75, 15);
 }
@@ -95,18 +108,62 @@ void showProgressBorder(float frac) {
   }
 }
 
+void drawAnalysisGraph(ArrayList<Integer> values, int maxIndex) {
+  int maxValue = TOTAL_SIZE;
+  if(maxIndex >= 0) maxValue = values.get(maxIndex);
+  
+  float graphWidth = width * graphSizeFrac;
+  float graphHeight = height * graphSizeFrac;
+  float graphStartX = width * ((1 - graphSizeFrac) / 2);
+  float graphStartY = height - height * ((1 - graphSizeFrac) / 2);
+  float graphXStep = graphWidth / (values.size());
+  float graphYStep = graphHeight / maxValue / 2;
+  
+  //boolean legacyColor = false;
+  
+  noFill();
+  stroke(255);
+  strokeWeight(1);
+  beginShape();
+  vertex(graphStartX + graphWidth, graphStartY);
+  vertex(graphStartX, graphStartY);
+  int iStep = ceil(values.size() / graphWidth); // Ensure we're not drawing more lines than we have pixels
+  for(int i = 0; i < values.size(); i += iStep) {
+    vertex(graphStartX + graphXStep * (i + 1), graphStartY - graphYStep * values.get(i));
+  }
+  endShape();
+  
+  if(maxIndex >= 0) {
+    textAlign(CENTER, CENTER);
+    text(maxValue, graphStartX + graphXStep * (maxIndex + 1), graphStartY - graphYStep * maxValue - 20);
+  }
+}
+
 void advanceAverageTracker(int nextVal) {
   averageTrackerFrames[frameCount % AVERAGE_TRACKER_LENGTH] = nextVal;
-  averageTracker = 0;
-  for(int i = 0; i < AVERAGE_TRACKER_LENGTH; ++i)
-    averageTracker += (float)averageTrackerFrames[i];
-  averageTracker /= AVERAGE_TRACKER_LENGTH;
+
+  numAnalyzedPerFrame.add(round(averageTrackerLastXValues(averageTrackerFrames, 30)));
+  if(numAnalyzedPerFrame.get(numAnalyzedPerFrame.size() - 1) > numAnalyzedPerFrame.get(numAnalyzedPerFrame_maxIndex))
+    numAnalyzedPerFrame_maxIndex = numAnalyzedPerFrame.size() - 1;
+    
+  averageTracker = averageTrackerLastXValues(averageTrackerFrames, AVERAGE_TRACKER_LENGTH);
+}
+
+float averageTrackerLastXValues(int[] array, int size) {
+  if(size > frameCount - averageTrackerStartFrame)
+    size = frameCount - averageTrackerStartFrame;
+  int sum = 0;
+  for(int i = frameCount; i >= frameCount - size; --i)
+    sum += array[i % array.length];
+  return (float)sum / size;
 }
 
 void resetAverage() {
-  averageTrackerLastValue = 0;
   averageTrackerStartFrame = frameCount;
   averageTrackerStartTime = millis();
   averageTrackerFrames = new int[AVERAGE_TRACKER_LENGTH];
+  numAnalyzedPerFrame.clear();
+  //totalAnalyzedPerFrame.clear();
   lastCur = 0;
+  numAnalyzedPerFrame_maxIndex = 0;
 }

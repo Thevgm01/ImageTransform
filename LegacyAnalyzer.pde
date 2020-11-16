@@ -16,7 +16,7 @@ void findBestFitThread7_legacy() { findBestFitThread_legacy(7); }
 void findBestFitThread_legacy(int offset) {
   for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {          
     findBestFit_legacy(i);
-    analyzeIndexes[offset]++;
+    analysisIndexes[offset]++;
   }
 }
 
