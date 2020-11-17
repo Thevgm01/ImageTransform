@@ -3,7 +3,7 @@ void plot(int x, int y, color c, int f) {
 }
 
 void plot(float x, float y, color c, int f) {
-  animationFrames[f].pixels[round(y) * width + round(x)] = c;
+  plot(round(x), round(y), c, f);
 }
 
 // Bresenham's line algorithm

@@ -13,20 +13,24 @@ final int ANIMATION_LURCH = 5;
 final int ANIMATION_FALLING_SAND = 6;
 final int ANIMATION_LASER = 7;
 final int ANIMATION_EVAPORATE = 8;
-final int NUM_ANIMATIONS = 9;
+final int ANIMATION_NOISEFIELD = 9;
+final int NUM_ANIMATIONS = 10;
 
 final int ANIMATION_CIRCLE_AXIS = 10; // centerY, startAngle, endAngle, radius
 
-final int DEFAULT = 0;
-final int POLY = 1;
-final int POLY_INVERSE = 2;
-final int STEEP = 3;
-final int POLY_STEEP = 4;
-final int partialEasingOffset = 5;
+final int LINEAR = 0;
+final int DEFAULT = 1;
+final int POLY = 2;
+final int POLY_INVERSE = 3;
+final int STEEP = 4;
+final int POLY_STEEP = 5;
+final int EXPONENTIAL = 6;
+final int EXPONENTIAL_SMOOTH = 6;
+final int partialEasingOffset = 7;
 
 final float easeValue = 3f;
 final float polynomialPower = 2f;
-final float noiseScale = 500f;
+final float exponentialFalloff = 2f;
 final float trigTableSize = 4000f;
 
 final float sandFallDuration = 0.5f;
@@ -43,46 +47,75 @@ int[][] storedCoords;
 boolean usingStoredCoords = false;
 
 float[][] easing;
-float[][] noiseTable;
 float[] sinTable, cosTable;
+
+float[][] noiseTableX;
+float[][] noiseTableY;
+final float NOISE_SCALE = 1000f; // How much the pixels move
+final float NOISE_STEP = 0.001f; // How varied the movements are across the whole image
+
+// Don't change this one, this is basically how finely detailed the noise movement is
+final int NOISE_CIRCLE_RADIUS = 500;//NOISE_CIRCLE_DIAMETER / 2;
+final int NOISE_CIRCLE_DIAMETER = NOISE_CIRCLE_RADIUS * 2;
+
+float[] getNoiseXY(float x, float y) {
+  int i = round(x) + NOISE_CIRCLE_DIAMETER,
+      j = round(y) + NOISE_CIRCLE_DIAMETER;
+  return new float[] {
+    noiseTableX[i][j], 
+    noiseTableY[i][j] 
+    //noise(x + 5000, y + 5000),
+    //noise(x + 5000, y - 5000)
+  };
+}
 
 void initializeAnimator() {
   easing = new float[TOTAL_ANIMATION_FRAMES][5 * 2];
-  for(int i = 0; i < TOTAL_ANIMATION_FRAMES; i++) {
-    easing[i][DEFAULT] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1), easeValue);
+  for(int i = 0; i < TOTAL_ANIMATION_FRAMES; ++i) {
+    float frac = (float)i / (TOTAL_ANIMATION_FRAMES - 1);
+    easing[i][LINEAR] = frac;
+    easing[i][DEFAULT] = easeFunc(frac, easeValue);
     easing[i][POLY] = pow(easing[i][DEFAULT], polynomialPower);
     easing[i][POLY_INVERSE] = pow(easing[i][DEFAULT], 1f/polynomialPower);
-    easing[i][STEEP] = easeFunc((float)i / (TOTAL_ANIMATION_FRAMES - 1), easeValue * 2f);
+    easing[i][STEEP] = easeFunc(frac, easeValue * 2f);
     easing[i][POLY_STEEP] = pow(easing[i][STEEP], polynomialPower);
+    easing[i][EXPONENTIAL] = 1 - exp(-frac * exponentialFalloff) * (1 - frac);
+    easing[i][EXPONENTIAL_SMOOTH] = lerp(easing[i][DEFAULT], easing[i][EXPONENTIAL], 0.5f);
   }
   
-  for(int i = sandFallFrames; i < TOTAL_ANIMATION_FRAMES; i++) {
+  /*
+  for(int i = sandFallFrames; i < TOTAL_ANIMATION_FRAMES; ++i) {
      float index = map(i, sandFallFrames, TOTAL_ANIMATION_FRAMES, 0, TOTAL_ANIMATION_FRAMES);
      int integerPart = (int)index;
      float floatPart = index - integerPart;
-     for(int j = 0; j < partialEasingOffset; j++) {
+     for(int j = 0; j < partialEasingOffset; ++j) {
        easing[i][j + partialEasingOffset] = lerp(easing[integerPart][j], easing[integerPart + 1][j], floatPart);
      }
   }
   
   int sandAnimationFrames = TOTAL_ANIMATION_FRAMES - sandFallFrames;
-  for(int i = 0; i < sandAnimationFrames; i++) {
+  for(int i = 0; i < sandAnimationFrames; ++i) {
     easing[i + sandFallFrames][DEFAULT + partialEasingOffset] = easeFunc((float)i / (sandAnimationFrames - 1), easeValue);
     easing[i + sandFallFrames][POLY + partialEasingOffset] = pow(easing[i + sandFallFrames][DEFAULT + partialEasingOffset], polynomialPower);
     easing[i + sandFallFrames][POLY_INVERSE + partialEasingOffset] = pow(easing[i + sandFallFrames][DEFAULT + partialEasingOffset], 1f/polynomialPower);
     easing[i + sandFallFrames][STEEP + partialEasingOffset] = easeFunc((float)i / (sandAnimationFrames - 1), easeValue * 2f);
     easing[i + sandFallFrames][POLY_STEEP + partialEasingOffset] = pow(easing[i + sandFallFrames][STEEP + partialEasingOffset], polynomialPower);
   }
-  
-  noiseTable = new float[height][width];
-  for(int i = 0; i < height; i++)
-    for(int j = 0; j < width; j++)
-      noiseTable[i][j] = noise(i / noiseScale, j / noiseScale);
-  
+  */
+
+  noiseTableX = new float[width + 2000][height + 2000];
+  noiseTableY = new float[width + 2000][height + 2000];
+  for(int i = 0; i < width + 2000; ++i) {
+    for(int j = 0; j < height + 2000; ++j) {
+      noiseTableX[i][j] = noise((i + 10000) * NOISE_STEP, (j + 10000) * NOISE_STEP) * NOISE_SCALE;
+      noiseTableY[i][j] = noise((i - 10000) * NOISE_STEP, (j - 10000) * NOISE_STEP) * NOISE_SCALE;
+    }
+  }
+
   int numEntries = (int)(TWO_PI * trigTableSize);
   sinTable = new float[numEntries + 1];
   cosTable = new float[numEntries + 1];
-  for(int i = 0; i <= numEntries; i++) {
+  for(int i = 0; i <= numEntries; ++i) {
     sinTable[i] = sin(i / trigTableSize);
     cosTable[i] = cos(i / trigTableSize);
   }
@@ -101,9 +134,9 @@ void resetAnimator() {
     || curAnimation == ANIMATION_ELLIPSE 
   );
   
-  easeMethodX = (int)random(3);
-  do easeMethodY = (int)random(3);
-  while(easeMethodX == easeMethodY && easeMethodX != 0); // Ensure you can't have two of the same polynomial easing
+  easeMethodX = (int)random(3) + 1;
+  do easeMethodY = (int)random(3) + 1;
+  while(easeMethodX == easeMethodY); // Ensure you can't have two of the same polynomial easing
   
   direction = random(1) > 0.5f ? 1 : -1;
   
@@ -111,7 +144,7 @@ void resetAnimator() {
   usingStoredCoords = false;
   
   // OVERRIDES //
-  //curAnimation = ANIMATION_EVAPORATE;
+  curAnimation = ANIMATION_NOISEFIELD;
   //curAnimation = ANIMATION_BURST_PHYSICS;
   //easeMethodX = 2;
 }
@@ -135,14 +168,19 @@ float easeFunc(float t, float strength) {
   return pow(t, strength)/(pow(t, strength)+pow((1-t), strength));
 }
 
+boolean inBounds(float x, float y) {
+  return x >= 0 && x < width && y >= 0 && y < height;
+}
+
 void createTransitionAnimation() {
   switch(curAnimation) {
     case ANIMATION_FALLING_SAND:
       thread("animate_fallingSand");
       break;
     default:
-      for(int i = 0; i < NUM_THREADS; i++)
+      for(int i = 0; i < NUM_THREADS; ++i)
         thread("createAnimationFrames" + i);
+        //createAnimationFrames(i);
       break;
   }
 }
@@ -185,6 +223,8 @@ void createAnimationFrames(int offset) {
         animatePixel_laser(coords); break;
       case ANIMATION_EVAPORATE: 
         animatePixel_evaporate(coords); break;
+      case ANIMATION_NOISEFIELD: 
+        animatePixel_noisefield(coords); break;
       //case ANIMATION_CIRCLE_AXIS: 
       //  animatePixel_circleAxis(c, coords); break;
     }
@@ -211,8 +251,8 @@ void animatePixel_circle(int[] coords) {
     float rotateAmount = startAngle + PI * direction * easing[frame][DEFAULT];
     float newX = centerX + getTrigTable(cosTable, rotateAmount) * radius,
           newY = centerY + getTrigTable(sinTable, rotateAmount) * radius;
-    if(newX < 0 || newX >= width - 1 || newY < 0 || newY >= height - 1) continue;
-    plot(newX, newY, coords[COLOR], frame);
+    if(inBounds(newX, newY))
+      plot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -233,8 +273,8 @@ void animatePixel_spiral(int[] coords) {
     float radiusAmount = startDist + radiusDiff * easing[frame][easeMethodY];
     float newX = HALF_WIDTH + getTrigTable(cosTable, rotateAmount) * radiusAmount,
           newY = HALF_HEIGHT + getTrigTable(sinTable, rotateAmount) * radiusAmount;
-    if(newX < 0 || newX >= width - 1 || newY < 0 || newY >= height - 1) continue;
-    plot(newX, newY, coords[COLOR], frame);
+    if(inBounds(newX, newY))
+      plot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -280,15 +320,15 @@ void animatePixel_ellipse(int[] coords) {
   if(coords[Y2] > centerY) endAngle = TWO_PI - endAngle;
 
   if(coords[Y1] > coords[Y2]) endAngle += TWO_PI;
-  float angleDiff = endAngle - startAngle;
+  float angleDiff = endAngle - startAngle; //<>//
   //if(angleDiff < PI*3f/5) angleDiff += TWO_PI;
 
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {    
     float rotateAmount = startAngle + angleDiff /** direction*/ * easing[frame][DEFAULT];    
     float newX = HALF_WIDTH + getTrigTable(cosTable, -rotateAmount) * ellipseWidthRadius,
           newY = centerY + getTrigTable(sinTable, -rotateAmount) * ellipseHeightRadius;
-    if(newX < 0 || newX >= width - 1 || newY < 0 || newY >= height - 1) continue;
-    plot(newX, newY, coords[COLOR], frame);
+    if(inBounds(newX, newY))
+      plot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -411,7 +451,7 @@ void animate_fallingSand() {
   float velocity = 0;
   //float gravity = 0.15f;
   
-  for(int i = 0; i < TOTAL_SIZE; i++) {
+  for(int i = 0; i < TOTAL_SIZE; ++i) {
     int j = newOrder[i]; // starting index
     if(j == -1) continue;
     
@@ -476,7 +516,7 @@ void animate_fallingSand() {
       }
     }
   }
-  for(int i = 0; i < TOTAL_SIZE; i++) {
+  for(int i = 0; i < TOTAL_SIZE; ++i) {
     Sand s = sandList[sandPointers[i]];
     if(sandList[sandPointers[i]] == null) continue;
     storedCoords[i][X1] = s.x;
@@ -621,6 +661,39 @@ void animatePixel_circleAxis(int[] coords) {
   }
 }
 */
+
+void animatePixel_noisefield(int[] coords) {
+  float startAngle = random(0, TWO_PI);
+  float randomSpread = randomGaussian() * 10f;
+  int baseNoiseX = round(coords[X1] + cos(startAngle) * randomSpread);
+  int baseNoiseY = round(coords[Y1] + sin(startAngle) * randomSpread);
+  
+  float[] baseJitter = getNoiseXY(baseNoiseX + NOISE_CIRCLE_RADIUS, baseNoiseY);
+  
+  float xDiff = coords[X2] - coords[X1],
+        yDiff = coords[Y2] - coords[Y1];
+        
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; frame++) {
+    float newX = coords[X1] + xDiff * easing[frame][DEFAULT],//easeMethodX],
+          newY = coords[Y1] + yDiff * easing[frame][DEFAULT];//easeMethodY];
+          
+    // Make frac a lookup?
+    float noiseCircleAngle = PI * 2 * easing[frame][EXPONENTIAL_SMOOTH];//DEFAULT];
+    float noiseCircleX = baseNoiseX + getTrigTable(cosTable, noiseCircleAngle) * NOISE_CIRCLE_RADIUS,
+          noiseCircleY = baseNoiseY + getTrigTable(sinTable, noiseCircleAngle) * NOISE_CIRCLE_RADIUS;
+        
+    float[] noiseJitter = getNoiseXY(noiseCircleX, noiseCircleY);
+    noiseJitter[0] = (noiseJitter[0] - baseJitter[0]);
+    noiseJitter[1] = (noiseJitter[1] - baseJitter[1]);
+    
+    // Check rounding in others, might be doing twice in plot()
+    int newXint = round(newX + noiseJitter[0]),
+        newYint = round(newY + noiseJitter[1]);
+    
+    if(inBounds(newXint, newYint))
+      plot(newXint, newYint, coords[COLOR], frame);
+  }
+}
 
 // make it look like a wave
 // https://math.stackexchange.com/questions/121720/ease-in-out-function
