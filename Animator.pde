@@ -1,39 +1,45 @@
-final int X1 = 0;
-final int Y1 = 1;
-final int X2 = 2;
-final int Y2 = 3;
-final int COLOR = 4;
+int counter1 = 0;
+final int X1 = counter1++;
+final int Y1 = counter1++;
+final int X2 = counter1++;
+final int Y2 = counter1++;
+final int COLOR = counter1++;
 
-final int ANIMATION_LINEAR = 0;
-final int ANIMATION_CIRCLE = 1;      // centerX, centerY, startAngle, radius
-final int ANIMATION_SPIRAL = 2;      // startAngle, totalAngle, startRadius, endRadius
-final int ANIMATION_ELLIPSE = 3;
-final int ANIMATION_BURST_PHYSICS = 4;
-final int ANIMATION_LURCH = 5;
-final int ANIMATION_FALLING_SAND = 6;
-final int ANIMATION_LASER = 7;
-final int ANIMATION_EVAPORATE = 8;
-final int ANIMATION_NOISEFIELD = 9;
-final int NUM_ANIMATIONS = 10;
+private enum Animation {
+  LINEAR,
+  CIRCLE,
+  SPIRAL,
+  ELLIPSE,
+  BURST_PHYSICS,
+  LURCH,
+  FALLING_SAND,
+  LASER,
+  EVAPORATE,
+  WIGGLE,
+}
+final int NUM_ANIMATIONS = Animation.values().length;
 
-final int ANIMATION_CIRCLE_AXIS = 10; // centerY, startAngle, endAngle, radius
+//final int ANIMATION_CIRCLE_AXIS = 10; // centerY, startAngle, endAngle, radius
 
-final int LINEAR = 0;
-final int DEFAULT = 1;
-final int POLY = 2;
-final int POLY_INVERSE = 3;
-final int STEEP = 4;
-final int POLY_STEEP = 5;
-final int EXPONENTIAL = 6;
-final int EXPONENTIAL_SMOOTH = 6;
-final int partialEasingOffset = 7;
+int counter2 = 0;
+final int LINEAR = counter2++;
+final int DEFAULT = counter2++;
+final int POLY = counter2++;
+final int POLY_INVERSE = counter2++;
+final int STEEP = counter2++;
+final int POLY_STEEP = counter2++;
+final int EXPONENTIAL = counter2++;
+final int EXPONENTIAL_SMOOTH = counter2++;
+final int partialEasingOffset = counter2++;
+
+//--------------------------------------//
 
 final float easeValue = 3f;
 final float polynomialPower = 2f;
 final float exponentialFalloff = 2f;
 final float trigTableSize = 4000f;
 
-int curAnimation = 0;
+Animation curAnimation;
 int easeMethodX = 0;
 int easeMethodY = 0;
 int direction = 0;
@@ -43,18 +49,21 @@ int startFrame = 0;
 float[][] easing;
 float[] sinTable, cosTable;
 
+final float sandFallDuration = 0.5f;
+int sandFallFrames = (int)(sandFallDuration * TOTAL_ANIMATION_FRAMES);
+float sandFallAcceleration;
+
 float[][] noiseTableX;
 float[][] noiseTableY;
 final float NOISE_SCALE = 1000f; // How much the pixels move
 final float NOISE_STEP = 0.001f; // How varied the movements are across the whole image
-
 // Don't change this one, this is basically how finely detailed the noise movement is
 final int NOISE_CIRCLE_RADIUS = 500;//NOISE_CIRCLE_DIAMETER / 2;
-final int NOISE_CIRCLE_DIAMETER = NOISE_CIRCLE_RADIUS * 2;
+final int NOISE_CIRCLE_ARRAY = NOISE_CIRCLE_RADIUS * 4;
 
 float[] getNoiseXY(float x, float y) {
-  int i = round(x) + NOISE_CIRCLE_DIAMETER,
-      j = round(y) + NOISE_CIRCLE_DIAMETER;
+  int i = round(x) + NOISE_CIRCLE_RADIUS * 2,
+      j = round(y) + NOISE_CIRCLE_RADIUS * 2;
   return new float[] {
     noiseTableX[i][j], 
     noiseTableY[i][j] 
@@ -77,15 +86,6 @@ void initializeAnimator() {
     easing[i][EXPONENTIAL_SMOOTH] = lerp(easing[i][DEFAULT], easing[i][EXPONENTIAL], 0.5f);
   }
 
-  noiseTableX = new float[width + 2000][height + 2000];
-  noiseTableY = new float[width + 2000][height + 2000];
-  for(int i = 0; i < width + 2000; ++i) {
-    for(int j = 0; j < height + 2000; ++j) {
-      noiseTableX[i][j] = noise((i + 10000) * NOISE_STEP, (j + 10000) * NOISE_STEP) * NOISE_SCALE;
-      noiseTableY[i][j] = noise((i - 10000) * NOISE_STEP, (j - 10000) * NOISE_STEP) * NOISE_SCALE;
-    }
-  }
-
   int numEntries = (int)(TWO_PI * trigTableSize);
   sinTable = new float[numEntries + 1];
   cosTable = new float[numEntries + 1];
@@ -93,17 +93,20 @@ void initializeAnimator() {
     sinTable[i] = sin(i / trigTableSize);
     cosTable[i] = cos(i / trigTableSize);
   }
-  
+    
+  noiseTableX = new float[width + NOISE_CIRCLE_ARRAY][height + NOISE_CIRCLE_ARRAY];
+  noiseTableY = new float[width + NOISE_CIRCLE_ARRAY][height + NOISE_CIRCLE_ARRAY];
+    
   float sandFallTime = sandFallDuration * TOTAL_ANIMATION_FRAMES;
   sandFallAcceleration = height * 2 / (sandFallTime * sandFallTime);
 }
 
 void resetAnimator() {
   
-  do curAnimation = (int)random(NUM_ANIMATIONS);
+  do curAnimation = Animation.values()[(int)random(NUM_ANIMATIONS)];
   while(false
-    || curAnimation == ANIMATION_FALLING_SAND
-    || curAnimation == ANIMATION_ELLIPSE 
+    || curAnimation == Animation.FALLING_SAND
+    || curAnimation == Animation.ELLIPSE 
   );
   
   easeMethodX = (int)random(3) + 1;
@@ -115,10 +118,23 @@ void resetAnimator() {
   startFrame = 0;
     
   // OVERRIDES //
-  //curAnimation = ANIMATION_NOISEFIELD;
-  curAnimation = ANIMATION_FALLING_SAND;
-  //curAnimation = ANIMATION_BURST_PHYSICS;
+  //curAnimation = Animation.WIGGLE;
+  //curAnimation = Animation.FALLING_SAND;
+  //curAnimation = Animation.SPIRAL;
   //easeMethodX = 2;
+  
+  if(curAnimation == Animation.WIGGLE) {
+    thread("randomizeNoise");
+  }
+}
+
+void randomizeNoise() {
+  for(int i = 0; i < width + NOISE_CIRCLE_ARRAY; ++i) {
+    for(int j = 0; j < height + NOISE_CIRCLE_ARRAY; ++j) {
+      noiseTableX[i][j] = noise((i + 10000) * NOISE_STEP, (j + 10000) * NOISE_STEP) * NOISE_SCALE;
+      noiseTableY[i][j] = noise((i - 10000) * NOISE_STEP, (j - 10000) * NOISE_STEP) * NOISE_SCALE;
+    }
+  }
 }
 
 float getTrigTable(float[] table, float angle) {
@@ -140,13 +156,19 @@ float easeFunc(float t, float strength) {
   return pow(t, strength)/(pow(t, strength)+pow((1-t), strength));
 }
 
-boolean inBounds(float x, float y) {
+boolean inBounds(int x, int y) {
   return x >= 0 && x < width && y >= 0 && y < height;
+}
+
+void plotIfInBounds(float x, float y, color c, int f) {
+  int xi = round(x);
+  int yi = round(y);
+  if(inBounds(xi, yi)) plot(xi, yi, c, f);
 }
 
 void createTransitionAnimation() {
   switch(curAnimation) {
-    case ANIMATION_FALLING_SAND:
+    case FALLING_SAND:
       thread("animate_fallingSand");
       break;
     default:
@@ -176,23 +198,25 @@ void createAnimationFrames(int offset) {
     coords = getCoords(i, j);
 
     switch(curAnimation) {
-      case ANIMATION_LINEAR: 
+      case LINEAR: 
         animatePixel_linear(coords); break;
-      case ANIMATION_CIRCLE: 
+      case CIRCLE: 
         animatePixel_circle(coords); break;
-      case ANIMATION_SPIRAL: 
+      case SPIRAL: 
         animatePixel_spiral(coords); break;
-      case ANIMATION_ELLIPSE: 
+      case ELLIPSE: 
         animatePixel_ellipse(coords); break;
-      case ANIMATION_BURST_PHYSICS: 
+      case BURST_PHYSICS: 
         animatePixel_burstPhysics(coords); break;
-      case ANIMATION_LURCH: 
+      case LURCH: 
         animatePixel_lurch(coords); break;
-      case ANIMATION_LASER: 
+      case FALLING_SAND:
+        break;
+      case LASER: 
         animatePixel_laser(coords); break;
-      case ANIMATION_EVAPORATE: 
+      case EVAPORATE: 
         animatePixel_evaporate(coords); break;
-      case ANIMATION_NOISEFIELD: 
+      case WIGGLE: 
         animatePixel_noisefield(coords); break;
       //case ANIMATION_CIRCLE_AXIS: 
       //  animatePixel_circleAxis(c, coords); break;

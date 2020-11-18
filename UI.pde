@@ -1,4 +1,8 @@
 int lastCur;
+color whiteColor = color(255);
+color redColor = color(255, 0, 0);
+color fillColor = whiteColor;
+float colorChangeSpeed = 0.1f;
 
 ArrayList<Integer> numAnalyzedPerFrame = new ArrayList<Integer>();
 //ArrayList<Integer> totalAnalyzedPerFrame = new ArrayList<Integer>();
@@ -7,10 +11,16 @@ int numAnalyzedPerFrame_maxIndex = 0;
 
 void showAllInfo(int cur, int max, String label) {
   advanceAverageTracker(cur - lastCur);
-    
+  
+  if(curState == 0 && SWITCH_TO_LEGACY_ON_SLOWDOWN && pixelsLegacyAnalyzed.previousSetBit(cur) >= lastCur) {
+    fillColor = lerpColor(fillColor, redColor, colorChangeSpeed);
+  } else {
+    fillColor = lerpColor(fillColor, whiteColor, colorChangeSpeed);
+  }
+  
   if(showCalculatedPixels && curState == 0) {
     noStroke();
-    fill(255);
+    fill(fillColor);
     int topOfRectangle = lastCur / width;
     rect(0, topOfRectangle, width, 1 + cur / width - topOfRectangle);
   }
@@ -22,16 +32,16 @@ void showAllInfo(int cur, int max, String label) {
     //totalAnalyzedPerFrame.add(cur);
     //drawAnalysisGraph(totalAnalyzedPerFrame, -1);
   }
-  if(showNextImage) {
+  if(showEndImage) {
     tint(255, 220);
-    image(nextImgSmall, width - nextImgSmall.width, 0);
-    if(showNextImageCalculatedPixels) {
+    image(endImgSmall, width - endImgSmall.width, 0);
+    if(showEndImageCalculatedPixels) {
       noStroke();
-      fill(255);
-      float lastCurHeight = nextImgSmall.height * (float) lastCur / max;
-      float curHeight = nextImgSmall.height * (float) (cur - lastCur) / max;
+      fill(fillColor);
+      float lastCurHeight = endImgSmall.height * (float) lastCur / max;
+      float curHeight = endImgSmall.height * (float) (cur - lastCur) / max;
       //if(curHeight < 1) curHeight = 1;
-      rect(width - nextImgSmall.width, ceil(lastCurHeight), nextImgSmall.width, ceil(curHeight));
+      rect(width - endImgSmall.width, ceil(lastCurHeight), endImgSmall.width, ceil(curHeight));
     }
   }
   
@@ -49,7 +59,7 @@ void showAnalysisText(int cur, int max, String label) {
                   + (((float)millis() - averageTrackerStartTime)/1000f) + "\n"
                   + round(averageTracker * DESIRED_FRAMERATE) + "\n"
                   + round(frameRate*10)/10f;
-  fill(255);
+  fill(fillColor);
   textAlign(BASELINE);
   text(titles, 5, 15);
   text(values, 75, 15);
@@ -83,10 +93,10 @@ void showProgressBar(float frac) {
   
   if(y + animationY < height) {
     noFill();
-    stroke(255);
+    stroke(fillColor);
     strokeWeight(borderThickness);
     rect(x, y - animationY, w, h);
-    fill(255);
+    fill(fillColor);
     noStroke();
     rect(x, y - animationY, w*frac, h);
   }
@@ -94,7 +104,7 @@ void showProgressBar(float frac) {
 
 void showProgressBorder(float frac) {
   float progressSlideMult = (cos(progressSlide) + 1f) / 2f;
-  stroke(255);
+  stroke(fillColor);
   strokeWeight(3f);
   //strokeWeight(progressSlideMult * 3f);
   frac *= progressSlideMult;
@@ -130,7 +140,7 @@ void drawAnalysisGraph(ArrayList<Integer> values, int maxIndex) {
   //boolean legacyColor = false;
   
   noFill();
-  stroke(255);
+  stroke(fillColor);
   strokeWeight(1);
   beginShape();
   vertex(graphStartX + graphWidth, graphStartY);
@@ -172,6 +182,7 @@ void resetAverage() {
   averageTrackerFrames = new int[AVERAGE_TRACKER_LENGTH];
   numAnalyzedPerFrame.clear();
   //totalAnalyzedPerFrame.clear();
+  fillColor = whiteColor;
   lastCur = 0;
   numAnalyzedPerFrame_maxIndex = 0;
 }

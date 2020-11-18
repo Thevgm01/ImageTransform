@@ -14,12 +14,11 @@ void animatePixel_circle(int[] coords) {
   float startAngle = atan2(coords[Y1] - centerY, coords[X1] - centerX);
   float radius = dist(coords[X1], coords[Y1], coords[X2], coords[Y2]) / 2f;
   
-  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {    
+  for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
     float rotateAmount = startAngle + PI * direction * easing[frame][DEFAULT];
     float newX = centerX + getTrigTable(cosTable, rotateAmount) * radius,
           newY = centerY + getTrigTable(sinTable, rotateAmount) * radius;
-    if(inBounds(newX, newY))
-      plot(newX, newY, coords[COLOR], frame);
+    plotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -40,8 +39,7 @@ void animatePixel_spiral(int[] coords) {
     float radiusAmount = startDist + radiusDiff * easing[frame][easeMethodY];
     float newX = HALF_WIDTH + getTrigTable(cosTable, rotateAmount) * radiusAmount,
           newY = HALF_HEIGHT + getTrigTable(sinTable, rotateAmount) * radiusAmount;
-    if(inBounds(newX, newY))
-      plot(newX, newY, coords[COLOR], frame);
+    plotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -94,8 +92,7 @@ void animatePixel_ellipse(int[] coords) {
     float rotateAmount = startAngle + angleDiff /** direction*/ * easing[frame][DEFAULT];    
     float newX = HALF_WIDTH + getTrigTable(cosTable, -rotateAmount) * ellipseWidthRadius,
           newY = centerY + getTrigTable(sinTable, -rotateAmount) * ellipseHeightRadius;
-    if(inBounds(newX, newY))
-      plot(newX, newY, coords[COLOR], frame);
+    plotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -127,7 +124,7 @@ void animatePixel_burstPhysics(int[] coords) {
     
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
 
-    newX += xVel; //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>//
+    newX += xVel; //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>//
     xVel *= 0.995f;
     
     newY += yVel;
@@ -342,7 +339,6 @@ void animatePixel_noisefield(int[] coords) {
     float newX = coords[X1] + xDiff * easing[frame][DEFAULT],//easeMethodX],
           newY = coords[Y1] + yDiff * easing[frame][DEFAULT];//easeMethodY];
           
-    // Make frac a lookup?
     float noiseCircleAngle = PI * 2 * easing[frame][EXPONENTIAL_SMOOTH];//DEFAULT];
     float noiseCircleX = baseNoiseX + getTrigTable(cosTable, noiseCircleAngle) * NOISE_CIRCLE_RADIUS,
           noiseCircleY = baseNoiseY + getTrigTable(sinTable, noiseCircleAngle) * NOISE_CIRCLE_RADIUS;
@@ -351,12 +347,10 @@ void animatePixel_noisefield(int[] coords) {
     noiseJitter[0] = (noiseJitter[0] - baseJitter[0]);
     noiseJitter[1] = (noiseJitter[1] - baseJitter[1]);
     
-    // Check rounding in others, might be doing twice in plot()
-    int newXint = round(newX + noiseJitter[0]),
-        newYint = round(newY + noiseJitter[1]);
+    newX += noiseJitter[0];
+    newY += noiseJitter[1];
     
-    if(inBounds(newXint, newYint))
-      plot(newXint, newYint, coords[COLOR], frame);
+    plotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
 

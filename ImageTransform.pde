@@ -25,8 +25,8 @@ final boolean showAnalysisGraph = true;
 final boolean showProgress = true;
 final boolean showProgressBar = false;
 final boolean showProgressBorder = true;
-final boolean showNextImage = true;
-final boolean showNextImageCalculatedPixels = true;
+final boolean showEndImage = true;
+final boolean showEndImageCalculatedPixels = true;
 
 // IMAGES IN MEMORY //
 String startImgName;
@@ -35,9 +35,11 @@ String nextImgName;
 PImage startImg;
 PImage endImg;
 PImage nextImg;
+PImage endImgSmall;
 PImage nextImgSmall;
 PImage assembledImg;
 PImage[] animationFrames;
+PImage[] nextAnimationFrames;
 
 final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
 final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256
@@ -54,7 +56,7 @@ int[] startImage_RGB_cube = new int[1 << RGB_CUBE_LENGTH_SHIFT];
 
 final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
-final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
+final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = true;
 final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
 
 color[] startColorsRandomized;
@@ -62,9 +64,9 @@ int[] startIndexesRandomized;
 int[] newOrder;
 
 int[] analysisIndexes;
+int[] backgroundIndexes;
 int[] animationIndexes;
 BitSet pixelsLegacyAnalyzed;
-int animationInitializer;
 
 int curState;
 int curFrame;
@@ -87,7 +89,17 @@ void settings() {
 
 void setup() {
   frameRate(DESIRED_FRAMERATE);
-  colorMode(HSB);
+  //colorMode(HSB);
+  
+  initializeAnimator();
+  
+  analysisIndexes = new int[NUM_THREADS];
+  backgroundIndexes = new int[NUM_THREADS];
+  animationIndexes = new int[NUM_THREADS];
+  
+  startColorsRandomized = new color[TOTAL_SIZE];
+  startIndexesRandomized = new int[TOTAL_SIZE];
+  newOrder = new int[TOTAL_SIZE];
   
   loadNextImage();
   startImgName = nextImgName;
@@ -95,17 +107,9 @@ void setup() {
   loadNextImage();
   endImgName = nextImgName;
   endImg = nextImg;
-  
-  startColorsRandomized = new color[TOTAL_SIZE];
-  startIndexesRandomized = new int[TOTAL_SIZE];
-  newOrder = new int[TOTAL_SIZE];
-
-  analysisIndexes = new int[NUM_THREADS];
-  animationIndexes = new int[NUM_THREADS];
-  if(preAnimate) animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
-  
-  initializeAnimator();
-  
+  endImgSmall = nextImgSmall;
+  thread("createStartBackgrounds");
+      
   resetAll();
 }
 
@@ -124,34 +128,26 @@ void keyPressed() {
 }
 
 void draw() {
-  int numAnalyzed = 0, numAnimated = 0;
+  int numAnalyzed = 0, numBackgrounds = 0, numAnimated = 0;
   for(int i = 0; i < NUM_THREADS; i++) {
     numAnalyzed += analysisIndexes[i];
+    numBackgrounds += backgroundIndexes[i];
     numAnimated += animationIndexes[i];
   }
   
  switch(curState) {
     case 0: // Determine where pixels in the start image should end up
-      boolean stillProcessing = numAnalyzed < TOTAL_SIZE,
-              initializeAnimationFrame = preAnimate && animationInitializer < TOTAL_ANIMATION_FRAMES;
-      if(stillProcessing || initializeAnimationFrame) {
-        while(initializeAnimationFrame) {
-          float frac = (float)animationInitializer / TOTAL_ANIMATION_FRAMES;
-          fadeToBlack(startImg, frac);
-          animationFrames[animationInitializer]   = get();
-          animationFrames[animationInitializer+1] = get();
-          animationInitializer += 2;
-          if(stillProcessing || animationInitializer >= TOTAL_ANIMATION_FRAMES)
-            initializeAnimationFrame = false;
-        }
-        background(startImg);
-        moveProgressBar(progressSlideSpeed);
-        showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
-      } else {
-        background(startImg);
-        showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
+      boolean stillAnalyzing = numAnalyzed < TOTAL_SIZE,
+              stillMakingBackgrounds = preAnimate && numBackgrounds < TOTAL_ANIMATION_FRAMES;
+      background(startImg);
+      moveProgressBar(progressSlideSpeed);
+      showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
+      //if(stillProcessing) showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
+      //else if(stillMakingBackgrounds) showAllInfo(numFrames, TOTAL_ANIMATION_FRAMES, "Backgrounds created");
+      //else {
+      if(!stillAnalyzing && !stillMakingBackgrounds) {
         resetAverage();
-        if(record) saveFrame(recordingFilename);
+        //if(record) saveFrame(recordingFilename);
         if(SWITCH_TO_LEGACY_ON_SLOWDOWN) {
           int numPixelsLegacyAnalyzed = 0;
           for(int i = 0; i < pixelsLegacyAnalyzed.length(); ++i)
@@ -161,9 +157,10 @@ void draw() {
         }
         if(preAnimate) {
           curState++;
+          animationFrames = nextAnimationFrames;
+          thread("loadNextImageAndBackgrounds");
           createTransitionAnimation();
         }
-        numAnalyzed = 0;
         curState++;
       }
       break;
@@ -200,20 +197,17 @@ void draw() {
         curFrame = 0;
         curState++;
       } break;
-    case 4: // Pause for a moment to show the assembled image, then start loading the next image in the background
+    case 4: // Pause for a moment to show the assembled image
       if(curFrame < TOTAL_DELAY_FRAMES) {
         curFrame++;
       } else { 
         assembledImg = get();
-        if(nextImgName.equals(endImgName)) thread("loadNextImage");
         curFrame = 0;
         curState++;
       } break;
     case 5: // Fade gently between the assembled image and the true final image
       if(curFrame < TOTAL_FADE_FRAMES) {
-        float frac = (float)curFrame / TOTAL_FADE_FRAMES;
-        fadeToImage(assembledImg, endImg, frac);
-        curFrame++;
+        fadeToImage(assembledImg, endImg, (float)curFrame++ / TOTAL_FADE_FRAMES);
       } else {
         curFrame = 0;
         curState++;
@@ -236,6 +230,7 @@ void draw() {
       startImg = endImg;
       endImgName = nextImgName;
       endImg = nextImg;
+      endImgSmall = nextImgSmall;
       
       numAnalyzed = 0;
       numAnimated = 0;
@@ -243,6 +238,31 @@ void draw() {
       resetAll();
   }
   if(showProgress) showProgress(numAnalyzed, numAnimated);
+}
+
+void resetAll() {
+  println(startImgName);
+  randomizeImage(startImg.pixels, startColorsRandomized, startIndexesRandomized);
+
+  for(int i = 0; i < NUM_THREADS; i++) {
+    analysisIndexes[i] = 0;
+    //frameIndexes[i] = 0;
+    animationIndexes[i] = 0;
+  }
+  pixelsLegacyAnalyzed = new BitSet(endImg.pixels.length);
+  animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
+
+  if(LEGACY_ANALYSIS) analyzeStartImage_legacy();
+  else analyzeStartImage();
+ 
+  resetAnimator();
+  
+  curFrame = 0;
+  curState = 0;
+  
+  resetAverage();
+  
+  background(startImg);
 }
 
 void fadeToBlack(PImage back, float frac) {
@@ -256,31 +276,6 @@ void fadeToImage(PImage back, PImage front, float frac) {
   background(back);
   tint(255, frac * 255);
   image(front, 0, 0);
-}
-
-void resetAll() {
-  println(startImgName);
-  
-  randomizeImage(startImg.pixels, startColorsRandomized, startIndexesRandomized);
-
-  for(int i = 0; i < NUM_THREADS; i++) {
-    analysisIndexes[i] = 0;
-    animationIndexes[i] = 0;
-  }
-  pixelsLegacyAnalyzed = new BitSet(endImg.pixels.length);
-  animationInitializer = 0;
-
-  if(LEGACY_ANALYSIS) analyzeStartImage_legacy();
-  else analyzeStartImage();
- 
-  resetAnimator();
-  
-  curFrame = 0;
-  curState = 0;
-  
-  resetAverage();
-  
-  background(startImg);
 }
 
 // Randomizes the order of the pixels in an image to provide a

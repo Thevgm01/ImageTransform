@@ -24,11 +24,11 @@ void findBestFitThread_legacy(int offset) {
 // given pixel from the end image
 void findBestFit_legacy(int index) {
   color target = endImg.pixels[index];  
-  int targetHue = target >> RED & 0xff,
-      targetSat = target >> GREEN & 0xff,
-      targetBrt = target >> BLUE & 0xff;
+  int targetR = target >> RED & 0xff,
+      targetG = target >> GREEN & 0xff,
+      targetB = target >> BLUE & 0xff;
      
-  if(ignoreBlack && targetBrt == 0) {
+  if(ignoreBlack && brightness(target) == 0) {
   newOrder[index] = -1;  
     return;
   }
@@ -40,9 +40,9 @@ void findBestFit_legacy(int index) {
   for(int i = startingIndex; i < startingIndex + LEGACY_NUM_TO_CHECK; i++) {
     color cur = startColorsRandomized[i];
     int curFit = 
-      abs(targetHue - (cur >> RED & 0xff)) +
-      abs(targetSat - (cur >> GREEN & 0xff)) +
-      abs(targetBrt - (cur >> BLUE & 0xff));//(cur & 0xff)
+      abs(targetR - (cur >> RED & 0xff)) +
+      abs(targetG - (cur >> GREEN & 0xff)) +
+      abs(targetB - (cur >> BLUE & 0xff));//(cur & 0xff)
     if(curFit < bestFitValue) {
       bestFitIndex = startIndexesRandomized[i];
       bestFitValue = curFit;

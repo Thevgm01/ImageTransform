@@ -1,7 +1,3 @@
-final float sandFallDuration = 0.5f;
-int sandFallFrames = (int)(sandFallDuration * TOTAL_ANIMATION_FRAMES);
-float sandFallAcceleration;
-
 void animate_fallingSand() {
   int[] sandLastRadius = new int[width];
   boolean[] falling = new boolean[TOTAL_SIZE];
