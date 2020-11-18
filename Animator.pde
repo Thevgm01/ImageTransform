@@ -59,11 +59,12 @@ final float NOISE_SCALE = 1000f; // How much the pixels move
 final float NOISE_STEP = 0.001f; // How varied the movements are across the whole image
 // Don't change this one, this is basically how finely detailed the noise movement is
 final int NOISE_CIRCLE_RADIUS = 500;//NOISE_CIRCLE_DIAMETER / 2;
-final int NOISE_CIRCLE_ARRAY = NOISE_CIRCLE_RADIUS * 4;
+final int NOISE_CIRCLE_DIAMETER = NOISE_CIRCLE_RADIUS << 1;
+final int NOISE_CIRCLE_ARRAY = NOISE_CIRCLE_RADIUS << 2;
 
 float[] getNoiseXY(float x, float y) {
-  int i = round(x) + NOISE_CIRCLE_RADIUS * 2,
-      j = round(y) + NOISE_CIRCLE_RADIUS * 2;
+  int i = round(x) + NOISE_CIRCLE_DIAMETER,
+      j = round(y) + NOISE_CIRCLE_DIAMETER;
   return new float[] {
     noiseTableX[i][j], 
     noiseTableY[i][j] 
@@ -94,8 +95,7 @@ void initializeAnimator() {
     cosTable[i] = cos(i / trigTableSize);
   }
     
-  noiseTableX = new float[width + NOISE_CIRCLE_ARRAY][height + NOISE_CIRCLE_ARRAY];
-  noiseTableY = new float[width + NOISE_CIRCLE_ARRAY][height + NOISE_CIRCLE_ARRAY];
+  thread("randomizeNoise");
     
   float sandFallTime = sandFallDuration * TOTAL_ANIMATION_FRAMES;
   sandFallAcceleration = height * 2 / (sandFallTime * sandFallTime);
@@ -122,13 +122,12 @@ void resetAnimator() {
   //curAnimation = Animation.FALLING_SAND;
   //curAnimation = Animation.SPIRAL;
   //easeMethodX = 2;
-  
-  if(curAnimation == Animation.WIGGLE) {
-    thread("randomizeNoise");
-  }
 }
 
 void randomizeNoise() {
+  noiseSeed(frameCount);
+  noiseTableX = new float[width + NOISE_CIRCLE_ARRAY][height + NOISE_CIRCLE_ARRAY];
+  noiseTableY = new float[width + NOISE_CIRCLE_ARRAY][height + NOISE_CIRCLE_ARRAY];
   for(int i = 0; i < width + NOISE_CIRCLE_ARRAY; ++i) {
     for(int j = 0; j < height + NOISE_CIRCLE_ARRAY; ++j) {
       noiseTableX[i][j] = noise((i + 10000) * NOISE_STEP, (j + 10000) * NOISE_STEP) * NOISE_SCALE;

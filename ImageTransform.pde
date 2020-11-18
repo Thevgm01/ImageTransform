@@ -185,6 +185,9 @@ void draw() {
         moveProgressBar(progressSlideSpeed);
         showAllInfo(numAnimated, TOTAL_SIZE, "Pixels animated");
       } else {
+        if(curAnimation == Animation.WIGGLE) {
+          thread("randomizeNoise");
+        }
         curState++;
       } break;
     case 3: // Play the pre-animated transition as a sort of movie
