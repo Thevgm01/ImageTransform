@@ -52,7 +52,7 @@ void loadNextImage() {
   do {
     nextImgName = getRandomImageName(endImgName);
     nextImg = loadImage(nextImgName);
-  } while(nextImg == null || nextImg.width < 0 || nextImg.height < 0);
+  } while(nextImg == null || nextImg.width < 0 || nextImg.height < 0 || nextImgName.equals(endImgName));
   
   resizeImage(nextImg, width, height);
   nextImg = imageOnBlack(nextImg, 1);

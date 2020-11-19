@@ -356,5 +356,6 @@ void animatePixel_noisefield(int[] coords) {
 
 // make it look like a wave
 // random of all available animations
+// raindrops based on distance
 // https://math.stackexchange.com/questions/121720/ease-in-out-function
 // https://math.stackexchange.com/questions/547045/ellipses-given-focus-and-two-points

@@ -117,7 +117,7 @@ void resetAnimator() {
   startFrame = 0;
     
   // OVERRIDES //
-  curAnimation = Animation.WIGGLE;
+  //curAnimation = Animation.WIGGLE;
   //curAnimation = Animation.FALLING_SAND;
   //curAnimation = Animation.SPIRAL;
   //easeMethodX = 2;
