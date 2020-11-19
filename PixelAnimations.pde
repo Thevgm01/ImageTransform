@@ -339,7 +339,7 @@ void animatePixel_noisefield(int[] coords) {
     float newX = coords[X1] + xDiff * easing[frame][DEFAULT],//easeMethodX],
           newY = coords[Y1] + yDiff * easing[frame][DEFAULT];//easeMethodY];
           
-    float noiseCircleAngle = PI * 2 * easing[frame][EXPONENTIAL_SMOOTH];//DEFAULT];
+    float noiseCircleAngle = PI * 2 * easing[frame][POLY_INVERSE];//DEFAULT];
     float noiseCircleX = baseNoiseX + getTrigTable(cosTable, noiseCircleAngle) * NOISE_CIRCLE_RADIUS,
           noiseCircleY = baseNoiseY + getTrigTable(sinTable, noiseCircleAngle) * NOISE_CIRCLE_RADIUS;
         
@@ -355,5 +355,6 @@ void animatePixel_noisefield(int[] coords) {
 }
 
 // make it look like a wave
+// random of all available animations
 // https://math.stackexchange.com/questions/121720/ease-in-out-function
 // https://math.stackexchange.com/questions/547045/ellipses-given-focus-and-two-points

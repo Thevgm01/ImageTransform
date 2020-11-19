@@ -55,10 +55,9 @@ float sandFallAcceleration;
 
 float[][] noiseTableX;
 float[][] noiseTableY;
-final float NOISE_SCALE = 1000f; // How much the pixels move
-final float NOISE_STEP = 0.001f; // How varied the movements are across the whole image
-// Don't change this one, this is basically how finely detailed the noise movement is
-final int NOISE_CIRCLE_RADIUS = 500;//NOISE_CIRCLE_DIAMETER / 2;
+final float NOISE_SCALE = 2000f; // How much the pixels move
+final float NOISE_STEP = 0.0005f; // How varied the movements are across the whole image
+final int NOISE_CIRCLE_RADIUS = 1000; // Don't change this one unless the movement is looking choppy
 final int NOISE_CIRCLE_DIAMETER = NOISE_CIRCLE_RADIUS << 1;
 final int NOISE_CIRCLE_ARRAY = NOISE_CIRCLE_RADIUS << 2;
 
@@ -118,7 +117,7 @@ void resetAnimator() {
   startFrame = 0;
     
   // OVERRIDES //
-  //curAnimation = Animation.WIGGLE;
+  curAnimation = Animation.WIGGLE;
   //curAnimation = Animation.FALLING_SAND;
   //curAnimation = Animation.SPIRAL;
   //easeMethodX = 2;

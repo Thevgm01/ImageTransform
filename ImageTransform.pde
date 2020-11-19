@@ -42,17 +42,17 @@ PImage[] animationFrames;
 PImage[] nextAnimationFrames;
 
 final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
-final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256
-final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT;
+final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256, currently 6
+final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT; // 64
 
-final int RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT = 11;
-final int RGB_CUBE_MAX_RANDOM_SAMPLES = 1 << RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT;
+final int RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT = 12;
+final int RGB_CUBE_MAX_RANDOM_SAMPLES = 1 << RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT; // 4096
 
 final int RGB_CUBE_X_SHIFT = RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT;
 final int RGB_CUBE_Y_SHIFT = RGB_CUBE_X_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
 final int RGB_CUBE_Z_SHIFT = RGB_CUBE_Y_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
-final int RGB_CUBE_LENGTH_SHIFT = RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
-int[] startImage_RGB_cube = new int[1 << RGB_CUBE_LENGTH_SHIFT];
+final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT); // 2^(12+6+6+6) = 2^30
+int[] startImage_RGB_cube = new int[RGB_CUBE_TOTAL_SIZE];
 
 final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
@@ -149,11 +149,8 @@ void draw() {
         resetAverage();
         //if(record) saveFrame(recordingFilename);
         if(SWITCH_TO_LEGACY_ON_SLOWDOWN) {
-          int numPixelsLegacyAnalyzed = 0;
-          for(int i = 0; i < pixelsLegacyAnalyzed.length(); ++i)
-            if(pixelsLegacyAnalyzed.get(i)) ++numPixelsLegacyAnalyzed;
-          if(numPixelsLegacyAnalyzed > 0)
-            println("Pixels analyzed with legacy method: " + numPixelsLegacyAnalyzed);
+          if(!pixelsLegacyAnalyzed.isEmpty())
+            println("Pixels analyzed with legacy method: " + pixelsLegacyAnalyzed.cardinality());
         }
         if(preAnimate) {
           curState++;
