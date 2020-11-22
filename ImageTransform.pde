@@ -45,15 +45,14 @@ final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB
 final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256, currently 6
 final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT; // 64
 
-final int RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT = 10;
-final int RGB_CUBE_MAX_RANDOM_SAMPLES = 1 << RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT; // 1024
-
-final int RGB_CUBE_X_SHIFT = RGB_CUBE_MAX_RANDOM_SAMPLES_BIT_SHIFT;
-final int RGB_CUBE_Y_SHIFT = RGB_CUBE_X_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
+final int RGB_CUBE_X_SHIFT = 0;
+final int RGB_CUBE_Y_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT;
 final int RGB_CUBE_Z_SHIFT = RGB_CUBE_Y_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
-final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT); // 2^(10+6+6+6) = 2^28
-int[] startImage_RGB_cube = new int[RGB_CUBE_TOTAL_SIZE];
-int[] recordedResults_RGB_cube = new int[RGB_CUBE_TOTAL_SIZE];
+final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT);
+
+// RGB          Indexes
+ArrayList<ArrayList<Integer>> RGB_cube;
+ArrayList<ArrayList<Integer>> RGB_cube_recordedResults;
 
 final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
@@ -101,6 +100,13 @@ void setup() {
   startColorsRandomized = new color[TOTAL_SIZE];
   startIndexesRandomized = new int[TOTAL_SIZE];
   newOrder = new int[TOTAL_SIZE];
+  
+  RGB_cube = new ArrayList<ArrayList<Integer>>();
+  RGB_cube_recordedResults = new ArrayList<ArrayList<Integer>>();
+  for(int i = 0; i < RGB_CUBE_TOTAL_SIZE; ++i) {
+    RGB_cube.add(new ArrayList<Integer>());
+    RGB_cube_recordedResults.add(new ArrayList<Integer>());
+  }
   
   loadNextImage();
   startImgName = nextImgName;
