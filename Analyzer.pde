@@ -1,5 +1,22 @@
 final int RED = 16, GREEN = 8, BLUE = 0;
 
+final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
+final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256, currently 6
+final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT; // 64
+
+final int RGB_CUBE_X_SHIFT = 0;
+final int RGB_CUBE_Y_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT;
+final int RGB_CUBE_Z_SHIFT = RGB_CUBE_Y_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
+final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT);
+
+// RGB          Indexes
+ArrayList<ArrayList<Integer>> RGB_cube;
+ArrayList<ArrayList<Integer>> RGB_cube_recordedResults;
+
+final boolean LEGACY_ANALYSIS = false;
+final int LEGACY_NUM_TO_CHECK = 2000;
+final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
+
 int coordsToIndex(int x, int y, int z) {
   return (x << RGB_CUBE_X_SHIFT) + (y << RGB_CUBE_Y_SHIFT) + (z << RGB_CUBE_Z_SHIFT); 
 }
@@ -7,7 +24,10 @@ int coordsToIndex(int x, int y, int z) {
 void analyzeStartImage() {
   for(int i = 0; i < RGB_CUBE_TOTAL_SIZE; ++i) {
     RGB_cube.set(i, new ArrayList<Integer>());
-    RGB_cube_recordedResults.set(i, new ArrayList<Integer>());
+    if(cacheAnalysisResults)
+      RGB_cube_recordedResults.set(i, new ArrayList<Integer>());
+    else
+      RGB_cube_recordedResults.get(i).set(0, 1);
   }
   
   for(int i = 0; i < TOTAL_SIZE; ++i) {
@@ -55,25 +75,33 @@ void findBestFit(int index) {
       targetB = (target >> BLUE & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT;
 
   int desiredIndex = coordsToIndex(targetR, targetG, targetB);
+  int startShellSize = 1;
 
-  if(RGB_cube_recordedResults.get(desiredIndex).size() > 0) {
+  if(cacheAnalysisResults) {
     ArrayList<Integer> results = RGB_cube_recordedResults.get(desiredIndex);
-    newOrder[index] = results.get((int)random(results.size()));
-    return;
+    if(results.size() > 0) {
+      newOrder[index] = results.get((int)random(results.size()));
+      return;
+    }
+  } else {
+    startShellSize = RGB_cube_recordedResults.get(desiredIndex).get(0);
   }
   
   ArrayList<Integer> candidates = new ArrayList<Integer>();
   candidates.addAll(RGB_cube.get(coordsToIndex(targetR, targetG, targetB)));
 
-  for(int shellSize = 1; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
+  for(int shellSize = startShellSize; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
     
     if(candidates.size() > 0) {
       newOrder[index] = candidates.get((int)random(candidates.size()));
-      RGB_cube_recordedResults.set(desiredIndex, candidates);
+      if(cacheAnalysisResults)
+        RGB_cube_recordedResults.set(desiredIndex, candidates);
+      else
+        RGB_cube_recordedResults.get(desiredIndex).set(0, shellSize);
       return;
     }
     
-    if(SWITCH_TO_LEGACY_ON_SLOWDOWN && shellSize >= SWITCH_TO_LEGACY_RGB_CUBE_SIZE) {
+    if(switchToLegacyAnalysisOnSlowdown && shellSize >= SWITCH_TO_LEGACY_RGB_CUBE_SIZE) {
       findBestFit_legacy(index);
       pixelsLegacyAnalyzed.set(index, true);
       return; 

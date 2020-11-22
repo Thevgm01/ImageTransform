@@ -1,8 +1,17 @@
-int lastCur;
-color whiteColor = color(255);
-color redColor = color(255, 0, 0);
+int averageTrackerStartFrame = 0;
+long averageTrackerStartTime = 0;
+final int AVERAGE_TRACKER_LENGTH = DESIRED_FRAMERATE;
+int[] averageTrackerFrames;
+float averageTracker = 0;
+float progressSlide = 0f;
+float progressSlideSpeed = PI / DESIRED_FRAMERATE;
+
+final color whiteColor = color(255);
+final color redColor = color(255, 0, 0);
+final float colorChangeSpeed = 0.1f;
+
 color fillColor = whiteColor;
-float colorChangeSpeed = 0.1f;
+int lastCur;
 
 ArrayList<Integer> numAnalyzedPerFrame = new ArrayList<Integer>();
 //ArrayList<Integer> totalAnalyzedPerFrame = new ArrayList<Integer>();
@@ -12,30 +21,30 @@ int numAnalyzedPerFrame_maxIndex = 0;
 void showAllInfo(int cur, int max, String label) {
   advanceAverageTracker(cur - lastCur);
   
-  if(curState == 0 && SWITCH_TO_LEGACY_ON_SLOWDOWN && pixelsLegacyAnalyzed.previousSetBit(cur) >= lastCur) {
+  if(curState == 0 && switchToLegacyAnalysisOnSlowdown && pixelsLegacyAnalyzed.previousSetBit(cur) >= lastCur) {
     fillColor = lerpColor(fillColor, redColor, colorChangeSpeed);
   } else {
     fillColor = lerpColor(fillColor, whiteColor, colorChangeSpeed);
   }
   
-  if(showCalculatedPixels && curState == 0) {
+  if(ui_showCalculatedPixels && curState == 0) {
     noStroke();
     fill(fillColor);
     int topOfRectangle = lastCur / width;
     rect(0, topOfRectangle, width, 1 + cur / width - topOfRectangle);
   }
-  if(showAnalysisText) {
+  if(ui_showAnalysisText) {
     showAnalysisText(cur, max, label);
   }
-  if(showAnalysisGraph) {
+  if(ui_showAnalysisGraph) {
     drawAnalysisGraph(numAnalyzedPerFrame, numAnalyzedPerFrame_maxIndex);
     //totalAnalyzedPerFrame.add(cur);
     //drawAnalysisGraph(totalAnalyzedPerFrame, -1);
   }
-  if(showEndImage) {
+  if(ui_showEndImage) {
     tint(255, 220);
     image(endImgSmall, width - endImgSmall.width, 0);
-    if(showEndImageCalculatedPixels) {
+    if(ui_showEndImageCalculatedPixels) {
       noStroke();
       fill(fillColor);
       float lastCurHeight = endImgSmall.height * (float) lastCur / max;
@@ -71,8 +80,8 @@ void showProgress(int numAnalyzed, int numAnimated) {
   else if(curState == 2) frac = 0.5f + (float)numAnimated / TOTAL_SIZE / 2f;
   else if(curState == 3) frac = 1f;
         
-  if(showProgressBar) showProgressBar(frac);
-  if(showProgressBorder) showProgressBorder(frac);
+  if(ui_showProgressBar) showProgressBar(frac);
+  if(ui_showProgressBorder) showProgressBorder(frac);
 }
 
 void moveProgressBar(float amount) {

@@ -17,16 +17,17 @@ final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 2;//3;
 final boolean ignoreBlack = true;
 final boolean preAnimate = true; //Dramatically slows loading speed, but required for maintaining high framerate at large resolutions
 final boolean cycle = true;
+final boolean cacheAnalysisResults = true;
+final boolean switchToLegacyAnalysisOnSlowdown = false;
 
-// UI //
-final boolean showCalculatedPixels = false;
-final boolean showAnalysisText = true;
-final boolean showAnalysisGraph = true;
-final boolean showProgress = true;
-final boolean showProgressBar = false;
-final boolean showProgressBorder = true;
-final boolean showEndImage = true;
-final boolean showEndImageCalculatedPixels = true;
+final boolean ui_showCalculatedPixels = false;
+final boolean ui_showAnalysisText = true;
+final boolean ui_showAnalysisGraph = true;
+final boolean ui_showProgress = true;
+final boolean ui_showProgressBar = false;
+final boolean ui_showProgressBorder = true;
+final boolean ui_showEndImage = true;
+final boolean ui_showEndImageCalculatedPixels = true;
 
 // IMAGES IN MEMORY //
 String startImgName;
@@ -41,24 +42,6 @@ PImage assembledImg;
 PImage[] animationFrames;
 PImage[] nextAnimationFrames;
 
-final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
-final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256, currently 6
-final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT; // 64
-
-final int RGB_CUBE_X_SHIFT = 0;
-final int RGB_CUBE_Y_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT;
-final int RGB_CUBE_Z_SHIFT = RGB_CUBE_Y_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
-final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT);
-
-// RGB          Indexes
-ArrayList<ArrayList<Integer>> RGB_cube;
-ArrayList<ArrayList<Integer>> RGB_cube_recordedResults;
-
-final boolean LEGACY_ANALYSIS = false;
-final int LEGACY_NUM_TO_CHECK = 2000;
-final boolean SWITCH_TO_LEGACY_ON_SLOWDOWN = false;
-final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
-
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
 int[] newOrder;
@@ -70,14 +53,6 @@ BitSet pixelsLegacyAnalyzed;
 
 int curState;
 int curFrame;
-
-int averageTrackerStartFrame = 0;
-long averageTrackerStartTime = 0;
-final int AVERAGE_TRACKER_LENGTH = DESIRED_FRAMERATE;
-int[] averageTrackerFrames;
-float averageTracker = 0;
-float progressSlide = 0f;
-float progressSlideSpeed = PI / DESIRED_FRAMERATE;
 
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
@@ -106,6 +81,8 @@ void setup() {
   for(int i = 0; i < RGB_CUBE_TOTAL_SIZE; ++i) {
     RGB_cube.add(new ArrayList<Integer>());
     RGB_cube_recordedResults.add(new ArrayList<Integer>());
+    if(!cacheAnalysisResults)
+      RGB_cube_recordedResults.get(i).add(1);
   }
   
   loadNextImage();
@@ -155,7 +132,7 @@ void draw() {
       if(!stillAnalyzing && !stillMakingBackgrounds) {
         resetAverage();
         //if(record) saveFrame(recordingFilename);
-        if(SWITCH_TO_LEGACY_ON_SLOWDOWN) {
+        if(switchToLegacyAnalysisOnSlowdown) {
           if(!pixelsLegacyAnalyzed.isEmpty())
             println("Pixels analyzed with legacy method: " + pixelsLegacyAnalyzed.cardinality());
         }
@@ -244,7 +221,7 @@ void draw() {
       
       resetAll();
   }
-  if(showProgress) showProgress(numAnalyzed, numAnimated);
+  if(ui_showProgress) showProgress(numAnalyzed, numAnimated);
 }
 
 void resetAll() {
