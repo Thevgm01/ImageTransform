@@ -106,6 +106,7 @@ void resetAnimator() {
   while(false
     || curAnimation == Animation.FALLING_SAND
     || curAnimation == Animation.ELLIPSE 
+    || curAnimation == Animation.WIGGLE 
   );
   
   easeMethodX = (int)random(3) + 1;
@@ -170,9 +171,8 @@ void createTransitionAnimation() {
       thread("animate_fallingSand");
       break;
     default:
-      for(int i = 0; i < NUM_THREADS; ++i)
+      for(int i = 0; i < NUM_ANIMATION_THREADS; ++i)
         thread("createAnimationFrames" + i);
-        //createAnimationFrames(i);
       break;
   }
 }
@@ -187,7 +187,7 @@ void createAnimationFrames6() { createAnimationFrames(6); }
 void createAnimationFrames7() { createAnimationFrames(7); }
 
 void createAnimationFrames(int offset) {
-  for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {
+  for(int i = offset; i < TOTAL_SIZE; i += NUM_ANIMATION_THREADS) {
     ++animationIndexes[offset];
 
     int[] coords;

@@ -1,5 +1,5 @@
 void analyzeStartImage_legacy() {
-  for(int i = 0; i < NUM_THREADS; i++) {
+  for(int i = 0; i < NUM_ANALYSIS_THREADS; i++) {
     thread("findBestFitThread" + i + "_legacy");
   }
 }
@@ -14,7 +14,7 @@ void findBestFitThread6_legacy() { findBestFitThread_legacy(6); }
 void findBestFitThread7_legacy() { findBestFitThread_legacy(7); }
 
 void findBestFitThread_legacy(int offset) {
-  for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {          
+  for(int i = offset; i < TOTAL_SIZE; i += NUM_ANALYSIS_THREADS) {          
     findBestFit_legacy(i);
     analysisIndexes[offset]++;
   }

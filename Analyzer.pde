@@ -40,7 +40,7 @@ void analyzeStartImage() {
     RGB_cube.get(coordsToIndex(pixelR, pixelG, pixelB)).add(i);
   }
 
-  for(int i = 0; i < NUM_THREADS; ++i) {
+  for(int i = 0; i < NUM_ANALYSIS_THREADS; ++i) {
     thread("findBestFitThread" + i);
   }
 }
@@ -55,7 +55,7 @@ void findBestFitThread6() { findBestFitThread(6); }
 void findBestFitThread7() { findBestFitThread(7); }
 
 void findBestFitThread(int offset) {
-  for(int i = offset; i < TOTAL_SIZE; i += NUM_THREADS) {          
+  for(int i = offset; i < TOTAL_SIZE; i += NUM_ANALYSIS_THREADS) {          
     findBestFit(i);
     ++analysisIndexes[offset];
   }

@@ -8,7 +8,9 @@ final boolean FULLSCREEN = false;
 final int HALF_WIDTH = WIDTH / 2, HALF_HEIGHT = HEIGHT / 2;
 final int TOTAL_SIZE = WIDTH * HEIGHT;
 final int DESIRED_FRAMERATE = 60;
-final int NUM_THREADS = 6;//The number of threads, up to 8
+final int NUM_ANALYSIS_THREADS = 1;//The number of threads, up to 8
+final int NUM_ANIMATION_THREADS = 6;//The number of threads, up to 8
+      int MAX_THREADS = 0;
 final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 4;//4;
 final int TOTAL_DELAY_FRAMES = DESIRED_FRAMERATE / 2;
 final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 2;//3;
@@ -68,9 +70,11 @@ void setup() {
   
   initializeAnimator();
   
-  analysisIndexes = new int[NUM_THREADS];
-  backgroundIndexes = new int[NUM_THREADS];
-  animationIndexes = new int[NUM_THREADS];
+  if(NUM_ANALYSIS_THREADS > MAX_THREADS) MAX_THREADS = NUM_ANALYSIS_THREADS;
+  if(NUM_ANIMATION_THREADS > MAX_THREADS) MAX_THREADS = NUM_ANIMATION_THREADS;
+  analysisIndexes = new int[MAX_THREADS];
+  backgroundIndexes = new int[MAX_THREADS];
+  animationIndexes = new int[MAX_THREADS];
   
   startColorsRandomized = new color[TOTAL_SIZE];
   startIndexesRandomized = new int[TOTAL_SIZE];
@@ -113,7 +117,7 @@ void keyPressed() {
 
 void draw() {
   int numAnalyzed = 0, numBackgrounds = 0, numAnimated = 0;
-  for(int i = 0; i < NUM_THREADS; i++) {
+  for(int i = 0; i < MAX_THREADS; i++) {
     numAnalyzed += analysisIndexes[i];
     numBackgrounds += backgroundIndexes[i];
     numAnimated += animationIndexes[i];
@@ -228,7 +232,7 @@ void resetAll() {
   println(startImgName);
   randomizeImage(startImg.pixels, startColorsRandomized, startIndexesRandomized);
 
-  for(int i = 0; i < NUM_THREADS; i++) {
+  for(int i = 0; i < MAX_THREADS; i++) {
     analysisIndexes[i] = 0;
     //frameIndexes[i] = 0;
     animationIndexes[i] = 0;
