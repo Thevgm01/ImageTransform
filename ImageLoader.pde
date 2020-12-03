@@ -1,46 +1,51 @@
 final String IMAGES_DIR =
-"";
+null;
 //"C:/Users/thevg/Desktop/Processing/Projects/Images/Spaceships";
 //"C:/Users/thevg/Desktop/Processing/Projects/Images/Landscapes";
 //"C:/Users/thevg/Pictures/Makoto Niijima Archive";
 //"E:/Pictures/Wallpapers/Favorites";
 
 final String IMAGES_LIST_FILE = 
-//"";
-//"C:/Users/thevg/Pictures/Wallpapers/list.txt";
-"H:/Pictures/Wallpapers/list.txt";
+//null;
+"C:/Users/thevg/Pictures/Wallpapers/list.txt";
+//"H:/Pictures/Wallpapers/list.txt";
 
 int imagesListFileSize = 0;
 
 String getRandomImageName(String exclude) {
-  if(IMAGES_LIST_FILE.equals("")) {
-    File[] files = new File(IMAGES_DIR).listFiles();
-    File result;
-    do {
-      result = files[(int)random(0, files.length)];
-    } while(result.getAbsolutePath().equals(exclude));
-    return result.getAbsolutePath();
-  } else {
-    try {
-      BufferedReader reader;
-      if(imagesListFileSize == 0) {
-        reader = createReader(IMAGES_LIST_FILE);
-        while(reader.readLine() != null)
-          imagesListFileSize++;
-        reader.close();
-      }
-      String result = "";
-      do {
-        int line = (int)random(0, imagesListFileSize);
-        reader = createReader(IMAGES_LIST_FILE);
-        for(int i = 0; i < line; i++)
-          result = reader.readLine(); 
-        reader.close();
-      } while(result.equals(exclude));
-      return result;
-    } catch(Exception e) { println("Images list file not found"); }
-  }
-  return null;
+  String result = "";
+  
+  do {
+    if(IMAGES_LIST_FILE != null) result = getRandomImageNameFromFile(IMAGES_LIST_FILE);
+    else if(IMAGES_DIR != null) result = getRandomImageNameFromDirectory(IMAGES_DIR);
+    else result = getRandomImageNameFromDirectory(System.getProperty("user.dir"));
+  } while(result.equals(exclude));
+  
+  return result;
+}
+
+String getRandomImageNameFromDirectory(String directory) {
+  File[] files = new File(directory).listFiles();
+  return files[(int)random(0, files.length)].getAbsolutePath();
+}
+
+String getRandomImageNameFromFile(String file) {
+  try {
+    
+    BufferedReader reader;
+    reader = createReader(file);
+    String result = reader.readLine();
+
+    if(imagesListFileSize == 0)
+      imagesListFileSize = Integer.parseInt(result.trim());
+
+    int desiredLine = (int)random(0, imagesListFileSize);
+    for(int i = 0; i < desiredLine; ++i)
+      reader.readLine(); 
+
+    return reader.readLine();
+
+  } catch(Exception e) { return null; }
 }
 
 void loadNextImageAndBackgrounds() {

@@ -124,7 +124,7 @@ void animatePixel_burstPhysics(int[] coords) {
     
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
 
-    newX += xVel; //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>//
+    newX += xVel; //<>//
     xVel *= 0.995f;
     
     newY += yVel;
