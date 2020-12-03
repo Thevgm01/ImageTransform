@@ -13,6 +13,7 @@ final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT
 ArrayList<ArrayList<Integer>> RGB_cube;
 ArrayList<ArrayList<Integer>> RGB_cube_recordedResults;
 
+final boolean PERFECT_RGB_CUBE_ANALYSIS = true;
 final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
 final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
@@ -80,12 +81,14 @@ void findBestFit(int index) {
   if(cacheAnalysisResults) {
     ArrayList<Integer> results = RGB_cube_recordedResults.get(desiredIndex);
     if(results.size() > 0) {
-      newOrder[index] = results.get((int)random(results.size()));
+      if(PERFECT_RGB_CUBE_ANALYSIS)
+        newOrder[index] = findBestFitFromList(target, results);
+      else
+        newOrder[index] = results.get((int)random(results.size()));
       return;
     }
-  } else {
-    startShellSize = RGB_cube_recordedResults.get(desiredIndex).get(0);
   }
+  //else startShellSize = RGB_cube_recordedResults.get(desiredIndex).get(0);
   
   ArrayList<Integer> candidates = new ArrayList<Integer>();
   candidates.addAll(RGB_cube.get(coordsToIndex(targetR, targetG, targetB)));
@@ -93,11 +96,14 @@ void findBestFit(int index) {
   for(int shellSize = startShellSize; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
     
     if(candidates.size() > 0) {
-      newOrder[index] = candidates.get((int)random(candidates.size()));
+      if(PERFECT_RGB_CUBE_ANALYSIS)
+        newOrder[index] = findBestFitFromList(target, candidates);
+      else 
+        newOrder[index] = candidates.get((int)random(candidates.size()));
+      
       if(cacheAnalysisResults)
         RGB_cube_recordedResults.set(desiredIndex, candidates);
-      else
-        RGB_cube_recordedResults.get(desiredIndex).set(0, shellSize);
+      //else RGB_cube_recordedResults.get(desiredIndex).set(0, shellSize);
       return;
     }
     
@@ -164,4 +170,28 @@ boolean testCubeBounds(int a) {
 
 boolean testCubeBounds(int a, int b) {
   return testCubeBounds(a) && testCubeBounds(b);
+}
+
+int findBestFitFromList(color target, ArrayList<Integer> samples) {
+  int targetR = target >> RED & 0xff,
+      targetG = target >> GREEN & 0xff,
+      targetB = target >> BLUE & 0xff;
+     
+  int bestFitIndex = -1;
+  float bestFitValue = 999999f;
+  
+  for(int i = 0; i < samples.size(); ++i) {
+    int index = samples.get(i);
+    color cur = endImg.pixels[index];
+    int curFit = 
+      abs(targetR - (cur >> RED & 0xff)) +
+      abs(targetG - (cur >> GREEN & 0xff)) +
+      abs(targetB - (cur >> BLUE & 0xff));//(cur & 0xff)
+    if(curFit < bestFitValue) {
+      bestFitIndex = index;
+      bestFitValue = curFit;
+      if(curFit == 0) break;
+    }
+  }
+  return bestFitIndex;
 }
