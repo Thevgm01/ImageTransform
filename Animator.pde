@@ -16,6 +16,7 @@ private enum Animation {
   LASER,
   EVAPORATE,
   WIGGLE,
+  EVAPORATE_CIRCLE
 }
 final int NUM_ANIMATIONS = Animation.values().length;
 
@@ -93,7 +94,7 @@ void initializeAnimator() {
     sinTable[i] = sin(i / trigTableSize);
     cosTable[i] = cos(i / trigTableSize);
   }
-    
+  
   thread("randomizeNoise");
     
   float sandFallTime = sandFallDuration * TOTAL_ANIMATION_FRAMES;
@@ -120,6 +121,7 @@ void resetAnimator() {
   // OVERRIDES //
   //curAnimation = Animation.WIGGLE;
   //curAnimation = Animation.FALLING_SAND;
+  curAnimation = Animation.EVAPORATE_CIRCLE;
   //curAnimation = Animation.SPIRAL;
   //easeMethodX = 2;
 }
@@ -159,11 +161,39 @@ boolean inBounds(int x, int y) {
   return x >= 0 && x < width && y >= 0 && y < height;
 }
 
-void plotIfInBounds(float x, float y, color c, int f) {
+void roundAndPlotIfInBounds(float x, float y, color c, int f) {
   int xi = round(x);
   int yi = round(y);
   if(inBounds(xi, yi)) plot(xi, yi, c, f);
 }
+
+float[] lineLineIntersection(float[] coords1, float[] coords2) 
+    { 
+        // Line AB represented as a1x + b1y = c1 
+        float a1 = coords1[Y2] - coords1[Y1]; 
+        float b1 = coords1[X2] - coords1[X1]; 
+        float c1 = a1*(coords1[X1]) + b1*(coords1[Y1]); 
+       
+        // Line CD represented as a2x + b2y = c2 
+        float a2 = coords2[Y2] - coords2[Y1]; 
+        float b2 = coords2[X2] - coords2[X1]; 
+        float c2 = a2*(coords2[X1])+ b2*(coords2[Y1]); 
+       
+        float determinant = a1*b2 - a2*b1; 
+       
+        if (determinant == 0) 
+        { 
+            // The lines are parallel. This is simplified 
+            // by returning a pair of FLT_MAX 
+            return new float[] { width, height };
+        } 
+        else
+        { 
+            float x = (b2*c1 - b1*c2)/determinant; 
+            float y = (a1*c2 - a2*c1)/determinant; 
+            return new float[] { x, y }; 
+        } 
+    } 
 
 void createTransitionAnimation() {
   switch(curAnimation) {
@@ -216,6 +246,8 @@ void createAnimationFrames(int offset) {
         animatePixel_evaporate(coords); break;
       case WIGGLE: 
         animatePixel_noisefield(coords); break;
+      case EVAPORATE_CIRCLE: 
+        animatePixel_evaporateCircle(coords); break;
       //case ANIMATION_CIRCLE_AXIS: 
       //  animatePixel_circleAxis(c, coords); break;
     }

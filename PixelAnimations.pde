@@ -18,7 +18,7 @@ void animatePixel_circle(int[] coords) {
     float rotateAmount = startAngle + PI * direction * easing[frame][DEFAULT];
     float newX = centerX + getTrigTable(cosTable, rotateAmount) * radius,
           newY = centerY + getTrigTable(sinTable, rotateAmount) * radius;
-    plotIfInBounds(newX, newY, coords[COLOR], frame);
+    roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -39,7 +39,7 @@ void animatePixel_spiral(int[] coords) {
     float radiusAmount = startDist + radiusDiff * easing[frame][easeMethodY];
     float newX = HALF_WIDTH + getTrigTable(cosTable, rotateAmount) * radiusAmount,
           newY = HALF_HEIGHT + getTrigTable(sinTable, rotateAmount) * radiusAmount;
-    plotIfInBounds(newX, newY, coords[COLOR], frame);
+    roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -92,7 +92,7 @@ void animatePixel_ellipse(int[] coords) {
     float rotateAmount = startAngle + angleDiff /** direction*/ * easing[frame][DEFAULT];    
     float newX = HALF_WIDTH + getTrigTable(cosTable, -rotateAmount) * ellipseWidthRadius,
           newY = centerY + getTrigTable(sinTable, -rotateAmount) * ellipseHeightRadius;
-    plotIfInBounds(newX, newY, coords[COLOR], frame);
+    roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -350,7 +350,66 @@ void animatePixel_noisefield(int[] coords) {
     newX += noiseJitter[0];
     newY += noiseJitter[1];
     
-    plotIfInBounds(newX, newY, coords[COLOR], frame);
+    roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
+  }
+}
+
+void animatePixel_evaporateCircle(int[] coords) {
+  float startAngle = atan2(coords[Y1] - HALF_HEIGHT, coords[X1] - HALF_WIDTH);
+  float endAngle = atan2(coords[Y2] - HALF_HEIGHT, coords[X2] - HALF_WIDTH);
+  
+  float startCos = getTrigTable(cosTable, startAngle);
+  float startSin = getTrigTable(sinTable, startAngle);
+  float endCos = getTrigTable(cosTable, endAngle);
+  float endSin = getTrigTable(sinTable, endAngle);
+  
+  int largestDim = width;
+  if(height > width) largestDim = height;
+  
+  //float totalDist = WIDTH;
+  float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1] + startCos * largestDim, coords[Y1] + startSin * largestDim };
+  float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] + endCos * largestDim, coords[Y2] + endSin * largestDim };
+  
+  float[][] edges = new float[][] {
+    new float[] { 0, 0, width, 0 },
+    new float[] { width, 0, width, height },
+    new float[] { 0, height, width, height },
+    new float[] { 0, 0, 0, height }
+  };
+  
+  float totalDist = 0;
+  float smallestDist = width;
+  for(int i = 0; i < 4; ++i) {
+    float[] point = lineLineIntersection(startSegment, edges[i]);
+    float dist = dist(coords[X1], coords[Y1], point[X1], point[Y1]);
+    if(dist < smallestDist) smallestDist = dist;
+  }
+  totalDist += smallestDist;
+  smallestDist = width;
+  for(int i = 0; i < 4; ++i) {
+    float[] point = lineLineIntersection(endSegment, edges[i]);
+    float dist = dist(coords[X2], coords[Y2], point[X1], point[Y1]);
+    if(dist < smallestDist) smallestDist = dist;
+  }
+  totalDist += smallestDist;
+
+  int frame;
+  for(frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
+    float newX = coords[X1] + startCos * totalDist * easing[frame][DEFAULT],
+          newY = coords[Y1] + startSin * totalDist * easing[frame][DEFAULT];
+          
+    int newXInt = round(newX),
+        newYInt = round(newY);
+        
+    if(inBounds(newXInt, newYInt))
+      plot(newXInt, newYInt, coords[COLOR], frame);
+    else break;
+  }
+  for(frame = frame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
+    float newX = coords[X2] + endCos * totalDist * (1 - easing[frame][DEFAULT]),
+          newY = coords[Y2] + endSin * totalDist * (1 - easing[frame][DEFAULT]);
+        
+    roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
 
