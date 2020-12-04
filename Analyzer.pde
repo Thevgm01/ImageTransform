@@ -4,16 +4,16 @@ final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB
 final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256, currently 6
 final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT; // 64
 
-final int RGB_CUBE_X_SHIFT = 0;
-final int RGB_CUBE_Y_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT;
-final int RGB_CUBE_Z_SHIFT = RGB_CUBE_Y_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT;
-final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_Z_SHIFT + RGB_CUBE_DIMENSIONS_BIT_SHIFT);
+final int RGB_CUBE_X_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 0;
+final int RGB_CUBE_Y_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 1;
+final int RGB_CUBE_Z_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 2;
+final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_DIMENSIONS_BIT_SHIFT * 3);
 
 // RGB          Indexes
 ArrayList<ArrayList<Integer>> RGB_cube;
 ArrayList<ArrayList<Integer>> RGB_cube_recordedResults;
 
-final boolean PERFECT_RGB_CUBE_ANALYSIS = true;
+final boolean PERFECT_RGB_CUBE_ANALYSIS = false; // Makes gradients look better
 final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
 final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);

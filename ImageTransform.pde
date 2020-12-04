@@ -24,7 +24,7 @@ final boolean switchToLegacyAnalysisOnSlowdown = false;
 
 final boolean ui_showCalculatedPixels = false;
 final boolean ui_showAnalysisText = true;
-final boolean ui_showAnalysisGraph = true;
+final boolean ui_showAnalysisGraph = false;
 final boolean ui_showProgress = true;
 final boolean ui_showProgressBar = false;
 final boolean ui_showProgressBorder = true;
@@ -91,6 +91,7 @@ void setup() {
   
   loadNextImage();
   startImgName = nextImgName;
+  endImgName = nextImgName; // Prevent loading the same image twice in the beginning
   startImg = nextImg;
   loadNextImage();
   endImgName = nextImgName;
