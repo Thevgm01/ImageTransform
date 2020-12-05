@@ -55,6 +55,7 @@ BitSet pixelsLegacyAnalyzed;
 
 int curState;
 int curFrame;
+boolean frameStepping = false;
 
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
@@ -107,12 +108,16 @@ void mouseClicked() {
   if(preAnimate && curState > 3)       curState = 3;
   else if(!preAnimate && curState > 1) curState = 1;
   curFrame = 0;
+  frameStepping = false;
   record = false;
 }
 
 void keyPressed() {
   if(key == 'a') {
     resetAll(); 
+  } else if(key == ' ') {
+    if(!frameStepping) frameStepping = true;
+    else ++curFrame;
   }
 }
 
@@ -157,7 +162,7 @@ void draw() {
         //loadPixels();
         //createAnimationFrame(pixels, curFrame);
         //updatePixels();
-        curFrame++; 
+        if(!frameStepping) ++curFrame; 
         if(record) saveFrame(recordingFilename);
         moveProgressBar(-progressSlideSpeed);
       } else if(cycle) {
@@ -179,7 +184,7 @@ void draw() {
     case 3: // Play the pre-animated transition as a sort of movie
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
         background(animationFrames[curFrame]);
-        curFrame++; 
+        if(!frameStepping) ++curFrame; 
         if(record) saveFrame(recordingFilename);
         moveProgressBar(-progressSlideSpeed);
       } else if(cycle) {
@@ -188,7 +193,7 @@ void draw() {
       } break;
     case 4: // Pause for a moment to show the assembled image
       if(curFrame < TOTAL_DELAY_FRAMES) {
-        curFrame++;
+        if(!frameStepping) ++curFrame;
       } else { 
         assembledImg = get();
         curFrame = 0;
@@ -196,7 +201,7 @@ void draw() {
       } break;
     case 5: // Fade gently between the assembled image and the true final image
       if(curFrame < TOTAL_FADE_FRAMES) {
-        fadeToImage(assembledImg, endImg, (float)curFrame++ / TOTAL_FADE_FRAMES);
+        if(!frameStepping) fadeToImage(assembledImg, endImg, (float)curFrame++ / TOTAL_FADE_FRAMES);
       } else {
         curFrame = 0;
         curState++;
@@ -205,7 +210,7 @@ void draw() {
       background(endImg);
       if(curFrame < TOTAL_DELAY_FRAMES) {
         moveProgressBar(progressSlideSpeed);
-        curFrame++;
+        if(!frameStepping) ++curFrame;
       } else {
         curState++;
       } break;

@@ -355,8 +355,8 @@ void animatePixel_noisefield(int[] coords) {
 }
 
 void animatePixel_evaporateCircle(int[] coords) {
-  float startAngle = atan2(coords[Y1] - HALF_HEIGHT, coords[X1] - HALF_WIDTH);
-  float endAngle = atan2(coords[Y2] - HALF_HEIGHT, coords[X2] - HALF_WIDTH);
+  float startAngle = -atan2(coords[Y1] - HALF_HEIGHT, coords[X1] - HALF_WIDTH);
+  float endAngle = -atan2(coords[Y2] - HALF_HEIGHT, coords[X2] - HALF_WIDTH);
   
   float startCos = getTrigTable(cosTable, startAngle);
   float startSin = getTrigTable(sinTable, startAngle);
@@ -387,6 +387,7 @@ void animatePixel_evaporateCircle(int[] coords) {
       startDist = dist;
     }
   }
+  
   float[] endEdgePoint = new float[2];
   float endDist = LARGEST_DIM;
   for(int i = 0; i < 4; ++i) {
@@ -399,7 +400,7 @@ void animatePixel_evaporateCircle(int[] coords) {
   }
   
   float edgePointDist = dist(startEdgePoint[X1], startEdgePoint[Y1], endEdgePoint[X1], endEdgePoint[Y1]);
-  float edgePointAngle = atan2(endEdgePoint[Y1] - startEdgePoint[Y1], endEdgePoint[X1] - startEdgePoint[X1]);
+  float edgePointAngle = atan2(endEdgePoint[Y1], endEdgePoint[X1]) - atan2(startEdgePoint[Y1], startEdgePoint[X1]);
   float edgePointCos = getTrigTable(cosTable, edgePointAngle);
   float edgePointSin = getTrigTable(sinTable, edgePointAngle);
   
@@ -412,17 +413,17 @@ void animatePixel_evaporateCircle(int[] coords) {
     float newX, newY;
     
     if(curDist < startDist) {
-      newX = coords[X1] + startCos * curDist;
-      newY = coords[Y1] + startSin * curDist;
+      float frac = curDist / startDist;
+      newX = lerp(coords[X1], startEdgePoint[X1], frac);
+      newY = lerp(coords[Y1], startEdgePoint[Y1], frac);
     } else if(curDist < edgePointDist) {
-      curDist -= startDist;
-      newX = startEdgePoint[X1] + edgePointCos * curDist;
-      newY = startEdgePoint[Y1] + edgePointSin * curDist;
-      roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
+      float frac = (curDist - startDist) / edgePointDist;
+      newX = lerp(startEdgePoint[X1], endEdgePoint[X1], frac);
+      newY = lerp(startEdgePoint[Y1], endEdgePoint[Y1], frac);
     } else {
-      curDist -= (startDist + edgePointDist);
-      newX = endEdgePoint[X1] - endCos * curDist;
-      newY = endEdgePoint[Y1] - endSin * curDist;
+      float frac = (curDist - startDist - edgePointDist) / endDist;
+      newX = lerp(endEdgePoint[X1], coords[X2], frac);
+      newY = lerp(endEdgePoint[Y1], coords[Y2], frac);
     }
     roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
   }
