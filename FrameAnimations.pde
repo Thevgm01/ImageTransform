@@ -1,16 +1,22 @@
 void animate_fallingSand() {
   int[] sandLastRadius = new int[width];
-  boolean[] falling = new boolean[TOTAL_SIZE];
   float velocity = 0;
   //float gravity = 0.15f;
   
-  int[][] allCoords = new int[TOTAL_SIZE][0];
+  ArrayList<ArrayList<Integer>> linkedCoords = new ArrayList<ArrayList<Integer>>();
+  for(int i = 0; i < TOTAL_SIZE; ++i)
+    linkedCoords.add(new ArrayList<Integer>()); 
+  
+  ArrayList<int[]> allCoords = new ArrayList<int[]>();
+  ArrayList<Boolean> falling = new ArrayList<Boolean>();
   for(int i = 0; i < TOTAL_SIZE; ++i) {
     int j = newOrder[i];
     if(j == -1) continue;
-    allCoords[i] = getCoords(i, j);
-    
-    falling[i] = true;
+    if(linkedCoords.get(j).size() < 1) {
+      allCoords.add(getCoords(i, j));
+      falling.add(true);
+    }
+    linkedCoords.get(j).add(i);
   }
   
   //int finalFallFrame = -1;
@@ -18,15 +24,14 @@ void animate_fallingSand() {
     velocity += sandFallAcceleration;
     //animationIndexes[0] += TOTAL_SIZE / TOTAL_ANIMATION_FRAMES;
 
-    for(int i = TOTAL_SIZE - 1; i >= 0; --i) {
+    for(int i = allCoords.size() - 1; i >= 0; --i) {
       ++animationIndexes[0];
-      int[] coords = allCoords[i];
-      if(coords.length == 0) continue;
-      if (falling[i]) {
+      int[] coords = allCoords.get(i);
+      if (falling.get(i)) {
         coords[Y1] += velocity;
 
         if (height - coords[Y1] - 1 < sandLastRadius[coords[X1]]) {
-          falling[i] = false;
+          falling.set(i, false);
   
           boolean searching = true;
           int radius = sandLastRadius[coords[X1]];
@@ -55,6 +60,11 @@ void animate_fallingSand() {
   
           ++sandLastRadius[coords[X1]];
           coords[Y1] = height - sandLastRadius[coords[X1]];
+          /*
+          ArrayList<Integer> linked = linkedCoords.get(newOrder[i]);
+          for(int j = 0; j < linked.size(); ++j) {
+            
+          }*/
         }
       }
       plot(coords[X1], coords[Y1], coords[COLOR], frame);

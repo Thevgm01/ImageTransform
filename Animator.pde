@@ -121,7 +121,7 @@ void resetAnimator() {
   // OVERRIDES //
   //curAnimation = Animation.WIGGLE;
   //curAnimation = Animation.FALLING_SAND;
-  curAnimation = Animation.EVAPORATE_CIRCLE;
+  //curAnimation = Animation.EVAPORATE_CIRCLE;
   //curAnimation = Animation.SPIRAL;
   //easeMethodX = 2;
 }
