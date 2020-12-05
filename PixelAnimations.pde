@@ -363,12 +363,12 @@ void animatePixel_evaporateCircle(int[] coords) {
   float endCos = getTrigTable(cosTable, endAngle);
   float endSin = getTrigTable(sinTable, endAngle);
   
-  int largestDim = width;
-  if(height > width) largestDim = height;
+  int LARGEST_DIM = width;
+  if(height > width) LARGEST_DIM = height;
   
   //float totalDist = WIDTH;
-  float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1] + startCos * largestDim, coords[Y1] + startSin * largestDim };
-  float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] + endCos * largestDim, coords[Y2] + endSin * largestDim };
+  float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1] + startCos * LARGEST_DIM, coords[Y1] + startSin * LARGEST_DIM };
+  float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] + endCos * LARGEST_DIM, coords[Y2] + endSin * LARGEST_DIM };
   
   float[][] edges = new float[][] {
     new float[] { 0, 0, width, 0 },
@@ -377,38 +377,53 @@ void animatePixel_evaporateCircle(int[] coords) {
     new float[] { 0, 0, 0, height }
   };
   
-  float totalDist = 0;
-  float smallestDist = width;
+  float[] startEdgePoint = new float[2];
+  float startDist = LARGEST_DIM;
   for(int i = 0; i < 4; ++i) {
     float[] point = lineLineIntersection(startSegment, edges[i]);
     float dist = dist(coords[X1], coords[Y1], point[X1], point[Y1]);
-    if(dist < smallestDist) smallestDist = dist;
+    if(dist < startDist) {
+      startEdgePoint = point;
+      startDist = dist;
+    }
   }
-  totalDist += smallestDist;
-  smallestDist = width;
+  float[] endEdgePoint = new float[2];
+  float endDist = LARGEST_DIM;
   for(int i = 0; i < 4; ++i) {
     float[] point = lineLineIntersection(endSegment, edges[i]);
     float dist = dist(coords[X2], coords[Y2], point[X1], point[Y1]);
-    if(dist < smallestDist) smallestDist = dist;
+    if(dist < endDist) {
+      endEdgePoint = point;
+      endDist = dist;
+    }
   }
-  totalDist += smallestDist;
+  
+  float edgePointDist = dist(startEdgePoint[X1], startEdgePoint[Y1], endEdgePoint[X1], endEdgePoint[Y1]);
+  float edgePointAngle = atan2(endEdgePoint[Y1] - startEdgePoint[Y1], endEdgePoint[X1] - startEdgePoint[X1]);
+  float edgePointCos = getTrigTable(cosTable, edgePointAngle);
+  float edgePointSin = getTrigTable(sinTable, edgePointAngle);
+  
+  float totalDist = startDist + edgePointDist + endDist;
 
   int frame;
   for(frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
-    float newX = coords[X1] + startCos * totalDist * easing[frame][DEFAULT],
-          newY = coords[Y1] + startSin * totalDist * easing[frame][DEFAULT];
-          
-    int newXInt = round(newX),
-        newYInt = round(newY);
-        
-    if(inBounds(newXInt, newYInt))
-      plot(newXInt, newYInt, coords[COLOR], frame);
-    else break;
-  }
-  for(frame = frame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
-    float newX = coords[X2] + endCos * totalDist * (1 - easing[frame][DEFAULT]),
-          newY = coords[Y2] + endSin * totalDist * (1 - easing[frame][DEFAULT]);
-        
+    float curDist = totalDist * easing[frame][DEFAULT];
+    
+    float newX, newY;
+    
+    if(curDist < startDist) {
+      newX = coords[X1] + startCos * curDist;
+      newY = coords[Y1] + startSin * curDist;
+    } else if(curDist < edgePointDist) {
+      curDist -= startDist;
+      newX = startEdgePoint[X1] + edgePointCos * curDist;
+      newY = startEdgePoint[Y1] + edgePointSin * curDist;
+      roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
+    } else {
+      curDist -= (startDist + edgePointDist);
+      newX = endEdgePoint[X1] - endCos * curDist;
+      newY = endEdgePoint[Y1] - endSin * curDist;
+    }
     roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
   }
 }
