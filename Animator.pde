@@ -16,7 +16,7 @@ private enum Animation {
   LASER,
   EVAPORATE,
   WIGGLE,
-  EVAPORATE_CIRCLE
+  ARC_TO_EDGE
 }
 final int NUM_ANIMATIONS = Animation.values().length;
 
@@ -121,7 +121,7 @@ void resetAnimator() {
   // OVERRIDES //
   //curAnimation = Animation.WIGGLE;
   //curAnimation = Animation.FALLING_SAND;
-  curAnimation = Animation.EVAPORATE_CIRCLE;
+  curAnimation = Animation.ARC_TO_EDGE;
   //curAnimation = Animation.SPIRAL;
   //easeMethodX = 2;
 }
@@ -168,32 +168,32 @@ void roundAndPlotIfInBounds(float x, float y, color c, int f) {
 }
 
 float[] lineLineIntersection(float[] coords1, float[] coords2) 
-    { 
-        // Line AB represented as a1x + b1y = c1 
-        float a1 = coords1[Y2] - coords1[Y1]; 
-        float b1 = coords1[X2] - coords1[X1]; 
-        float c1 = a1*(coords1[X1]) + b1*(coords1[Y1]); 
-       
-        // Line CD represented as a2x + b2y = c2 
-        float a2 = coords2[Y2] - coords2[Y1]; 
-        float b2 = coords2[X2] - coords2[X1]; 
-        float c2 = a2*(coords2[X1])+ b2*(coords2[Y1]); 
-       
-        float determinant = a1*b2 - a2*b1; 
-       
-        if (determinant == 0) 
-        { 
-            // The lines are parallel. This is simplified 
-            // by returning a pair of FLT_MAX 
-            return new float[] { width, height };
-        } 
-        else
-        { 
-            float x = (b2*c1 - b1*c2)/determinant; 
-            float y = (a1*c2 - a2*c1)/determinant; 
-            return new float[] { x, y }; 
-        } 
-    } 
+{ 
+  // Line AB represented as a1x + b1y = c1 
+  float a1 = coords1[Y2] - coords1[Y1]; 
+  float b1 = coords1[X2] - coords1[X1]; 
+  float c1 = a1*(coords1[X1]) + b1*(coords1[Y1]); 
+ 
+  // Line CD represented as a2x + b2y = c2 
+  float a2 = coords2[Y2] - coords2[Y1]; 
+  float b2 = coords2[X2] - coords2[X1]; 
+  float c2 = a2*(coords2[X1])+ b2*(coords2[Y1]); 
+ 
+  float determinant = a1*b2 - a2*b1; 
+ 
+  if (determinant == 0) 
+  { 
+      // The lines are parallel. This is simplified 
+      // by returning a pair of FLT_MAX 
+      return new float[] { width, height };
+  } 
+  else
+  { 
+      float x = (b2*c1 - b1*c2)/determinant; 
+      float y = (a1*c2 - a2*c1)/determinant; 
+      return new float[] { x, y }; 
+  } 
+} 
 
 void createTransitionAnimation() {
   switch(curAnimation) {
@@ -246,8 +246,8 @@ void createAnimationFrames(int offset) {
         animatePixel_evaporate(coords); break;
       case WIGGLE: 
         animatePixel_noisefield(coords); break;
-      case EVAPORATE_CIRCLE: 
-        animatePixel_evaporateCircle(coords); break;
+      case ARC_TO_EDGE: 
+        animatePixel_arcToEdge(coords); break;
       //case ANIMATION_CIRCLE_AXIS: 
       //  animatePixel_circleAxis(c, coords); break;
     }
