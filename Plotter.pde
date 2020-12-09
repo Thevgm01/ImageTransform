@@ -2,8 +2,32 @@ void plot(int x, int y, color c, int f) {
   animationFrames[f].pixels[y * width + x] = c;
 }
 
-void plot(float x, float y, color c, int f) {
+void roundAndPlot(float x, float y, color c, int f) {
   plot(round(x), round(y), c, f);
+}
+
+void roundAndPlotIfInBounds(float x, float y, color c, int f) {
+  int xi = round(x);
+  int yi = round(y);
+  if(inBounds(xi, yi)) plot(xi, yi, c, f);
+}
+
+boolean inBounds(int x, int y) {
+  return x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT;
+}
+
+void plotLine(int x0, int y0, int x1, int y1, color c, int f) {
+  if (abs(y1 - y0) < abs(x1 - x0)) {
+    if (x0 > x1)
+      plotLineLow(x1, y1, x0, y0, c, f);
+    else
+      plotLineLow(x0, y0, x1, y1, c, f);
+  } else {
+    if (y0 > y1)
+      plotLineHigh(x1, y1, x0, y0, c, f);
+    else
+      plotLineHigh(x0, y0, x1, y1, c, f);
+  }
 }
 
 // Bresenham's line algorithm
@@ -47,19 +71,5 @@ void plotLineHigh(int x0, int y0, int x1, int y1, color c, int f) {
        D = D - 2*dy;
     }
     D = D + 2*dx;
-  }
-}
-
-void plotLine(int x0, int y0, int x1, int y1, color c, int f) {
-  if (abs(y1 - y0) < abs(x1 - x0)) {
-    if (x0 > x1)
-      plotLineLow(x1, y1, x0, y0, c, f);
-    else
-      plotLineLow(x0, y0, x1, y1, c, f);
-  } else {
-    if (y0 > y1)
-      plotLineHigh(x1, y1, x0, y0, c, f);
-    else
-      plotLineHigh(x0, y0, x1, y1, c, f);
   }
 }

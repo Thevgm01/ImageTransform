@@ -4,7 +4,7 @@ void animatePixel_linear(int[] coords) {
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
     float newX = coords[X1] + xDiff * easing[frame][easeMethodX],
           newY = coords[Y1] + yDiff * easing[frame][easeMethodY];
-    plot(newX, newY, coords[COLOR], frame);
+    roundAndPlot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -124,7 +124,7 @@ void animatePixel_burstPhysics(int[] coords) {
     
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
 
-    newX += xVel; //<>// //<>//
+    newX += xVel; //<>// //<>// //<>//
     xVel *= 0.995f;
     
     newY += yVel;
@@ -153,7 +153,7 @@ void animatePixel_burstPhysics(int[] coords) {
       yVel = -yVel;
     }
 
-    plot(plotX, plotY, coords[COLOR], frame);
+    roundAndPlot(plotX, plotY, coords[COLOR], frame);
   }
 }
 
@@ -176,7 +176,7 @@ void animatePixel_lurch(int[] coords) {
         newX = coords[X2];
         newY = lerp(coords[Y1], coords[Y2], easing[frame * 2 - TOTAL_ANIMATION_FRAMES][POLY_INVERSE]); 
       }
-      plot(newX, newY, coords[COLOR], frame);
+      roundAndPlot(newX, newY, coords[COLOR], frame);
     }
   } else {
     for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
@@ -187,7 +187,7 @@ void animatePixel_lurch(int[] coords) {
         newX = lerp(coords[X1], coords[X2], easing[frame * 2 - TOTAL_ANIMATION_FRAMES][POLY_INVERSE]); 
         newY = coords[Y2];
       }
-      plot(newX, newY, coords[COLOR], frame);
+      roundAndPlot(newX, newY, coords[COLOR], frame);
     }
   }
 }
@@ -296,7 +296,7 @@ void animatePixel_evaporate(int[] coords) {
       newX = coords[X2];
     }
     //newX = lerp(coords[X1], coords[X2], easing[frame][DEFAULT]);
-    plot(newX, newY, coords[COLOR], frame);
+    roundAndPlot(newX, newY, coords[COLOR], frame);
   }
 }
 
@@ -354,59 +354,21 @@ void animatePixel_noisefield(int[] coords) {
   }
 }
 
-void animatePixel_arcToEdge(int[] coords) {
-  float startAngle = -atan2(coords[Y1] - HALF_HEIGHT, coords[X1] - HALF_WIDTH);
-  float endAngle = -atan2(coords[Y2] - HALF_HEIGHT, coords[X2] - HALF_WIDTH);
-  
-  float startCos = getTrigTable(cosTable, startAngle);
-  float startSin = getTrigTable(sinTable, startAngle);
-  float endCos = getTrigTable(cosTable, endAngle);
-  float endSin = getTrigTable(sinTable, endAngle);
-  
-  int LARGEST_DIM = width;
-  if(height > width) LARGEST_DIM = height;
-  
-  //float totalDist = WIDTH;
-  float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1] + startCos * LARGEST_DIM, coords[Y1] + startSin * LARGEST_DIM };
-  float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] + endCos * LARGEST_DIM, coords[Y2] + endSin * LARGEST_DIM };
-  
-  float[][] edges = new float[][] {
-    new float[] { 0, 0, width, 0 },
-    new float[] { width, 0, width, height },
-    new float[] { 0, height, width, height },
-    new float[] { 0, 0, 0, height }
-  };
-  
-  float[] startEdgePoint = new float[2];
-  float startDist = LARGEST_DIM;
-  for(int i = 0; i < 4; ++i) {
-    float[] point = lineLineIntersection(startSegment, edges[i]);
-    float dist = dist(coords[X1], coords[Y1], point[X1], point[Y1]);
-    if(dist < startDist) {
-      startEdgePoint = point;
-      startDist = dist;
-    }
-  }
-  
-  float[] endEdgePoint = new float[2];
-  float endDist = LARGEST_DIM;
-  for(int i = 0; i < 4; ++i) {
-    float[] point = lineLineIntersection(endSegment, edges[i]);
-    float dist = dist(coords[X2], coords[Y2], point[X1], point[Y1]);
-    if(dist < endDist) {
-      endEdgePoint = point;
-      endDist = dist;
-    }
-  }
+void animatePixel_arcToEdge(int[] coords) {  
+  float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1] - (coords[X1] - HALF_WIDTH) * LARGEST_DIM, coords[Y1] + (coords[Y1] - HALF_HEIGHT) * LARGEST_DIM };
+  float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] - (coords[X2] - HALF_WIDTH) * LARGEST_DIM, coords[Y2] + (coords[Y2] - HALF_HEIGHT) * LARGEST_DIM };
+    
+  float[] startEdgePoint = getClosestEdgePoint(startSegment);
+  float[] endEdgePoint = getClosestEdgePoint(endSegment);
 
   float edgePointDist = dist(startEdgePoint[X1], startEdgePoint[Y1], endEdgePoint[X1], endEdgePoint[Y1]) * 2; 
   float[] edgeMidPoint = new float[] { 
     (startEdgePoint[X1] + endEdgePoint[X1]) / 2,
     (startEdgePoint[Y1] + endEdgePoint[Y1]) / 2 };
   
-  float totalDist = startDist + edgePointDist + endDist;
-  float startHalfEdgeDist = startDist + edgePointDist / 2;
-  float endHalfEdgeDist = endDist + edgePointDist / 2;
+  float totalDist = startEdgePoint[DISTANCE] + edgePointDist + endEdgePoint[DISTANCE];
+  float startHalfEdgeDist = startEdgePoint[DISTANCE] + edgePointDist / 2;
+  float endHalfEdgeDist = endEdgePoint[DISTANCE] + edgePointDist / 2;
 
   //float sat = brightness(coords[COLOR]);
 
