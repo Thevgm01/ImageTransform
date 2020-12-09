@@ -354,6 +354,35 @@ void animatePixel_noisefield(int[] coords) {
   }
 }
 
+void animatePixel_evaporateCircle(int[] coords) {  
+  float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1] - (coords[X1] - HALF_WIDTH) * LARGEST_DIM, coords[Y1] + (coords[Y1] - HALF_HEIGHT) * LARGEST_DIM };
+  float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] - (coords[X2] - HALF_WIDTH) * LARGEST_DIM, coords[Y2] + (coords[Y2] - HALF_HEIGHT) * LARGEST_DIM };
+    
+  float[] startEdgePoint = getClosestEdgePoint(startSegment);
+  float[] endEdgePoint = getClosestEdgePoint(endSegment);
+  
+  float totalDist = startEdgePoint[DISTANCE] + endEdgePoint[DISTANCE];
+  //float sat = brightness(coords[COLOR]);
+
+  int frame;
+  for(frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
+    float curDist = totalDist * easing[frame][DEFAULT];
+    //float curDist = totalDist * lerp(easing[frame][POLY], easing[frame][POLY_INVERSE], sat / 256);
+    
+    float newX = 0, newY = 0;
+    if(curDist < startEdgePoint[DISTANCE]) {
+      float frac = curDist / startEdgePoint[DISTANCE];
+      newX = lerp(coords[X1], startEdgePoint[X1], frac);
+      newY = lerp(coords[Y1], startEdgePoint[Y1], frac);
+    } else {
+      float frac = (curDist - startEdgePoint[DISTANCE]) / endEdgePoint[DISTANCE];
+      newX = lerp(endEdgePoint[X1], coords[X2], frac);
+      newY = lerp(endEdgePoint[Y1], coords[Y2], frac);
+    }
+    roundAndPlotIfInBounds(newX, newY, coords[COLOR], frame);
+  }
+}
+
 void animatePixel_arcToEdge(int[] coords) {  
   float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1] - (coords[X1] - HALF_WIDTH) * LARGEST_DIM, coords[Y1] + (coords[Y1] - HALF_HEIGHT) * LARGEST_DIM };
   float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] - (coords[X2] - HALF_WIDTH) * LARGEST_DIM, coords[Y2] + (coords[Y2] - HALF_HEIGHT) * LARGEST_DIM };

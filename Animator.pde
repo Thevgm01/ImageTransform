@@ -56,8 +56,8 @@ void resetAnimator() {
   // OVERRIDES //
   //curAnimation = Animation.WIGGLE;
   //curAnimation = Animation.FALLING_SAND;
-  curAnimation = Animation.ARC_TO_EDGE;
-  //curAnimation = Animation.SPIRAL;
+  //curAnimation = Animation.ARC_TO_EDGE;
+  curAnimation = Animation.EVAPORATE_CIRCLE;
   //easeMethodX = 2;
 }
 
@@ -119,6 +119,8 @@ void createAnimationFrames(int offset) {
         animatePixel_laser(coords); break;
       case EVAPORATE: 
         animatePixel_evaporate(coords); break;
+      case EVAPORATE_CIRCLE: 
+        animatePixel_evaporateCircle(coords); break;
       case WIGGLE: 
         animatePixel_noisefield(coords); break;
       case ARC_TO_EDGE: 
