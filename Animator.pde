@@ -45,19 +45,15 @@ void resetAnimator() {
     || curAnimation == Animation.WIGGLE 
   );
   
-  easeMethodX = (int)random(3) + 1;
-  do easeMethodY = (int)random(3) + 1;
-  while(easeMethodX == easeMethodY); // Ensure you can't have two of the same polynomial easing
-  
-  direction = random(1) > 0.5f ? 1 : -1;
+  randomizeEasing();
     
   startFrame = 0;
     
   // OVERRIDES //
   //curAnimation = Animation.WIGGLE;
   //curAnimation = Animation.FALLING_SAND;
-  //curAnimation = Animation.ARC_TO_EDGE;
-  curAnimation = Animation.EVAPORATE_CIRCLE;
+  curAnimation = Animation.ARC_TO_EDGE;
+  //curAnimation = Animation.EVAPORATE_CIRCLE;
   //easeMethodX = 2;
 }
 

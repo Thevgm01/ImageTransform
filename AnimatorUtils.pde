@@ -36,6 +36,14 @@ void initializeEasing() {
   }
 }
 
+void randomizeEasing() {
+  easeMethodX = (int)random(3) + 1;
+  do easeMethodY = (int)random(3) + 1;
+  while(easeMethodX == easeMethodY); // Ensure you can't have two of the same polynomial easing
+  
+  direction = random(1) > 0.5f ? 1 : -1;
+}
+
 float easeFunc(float t, float strength) {
   return pow(t, strength)/(pow(t, strength)+pow((1-t), strength));
 }

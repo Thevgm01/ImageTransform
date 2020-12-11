@@ -124,7 +124,7 @@ void animatePixel_burstPhysics(int[] coords) {
     
   for(int frame = startFrame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
 
-    newX += xVel; //<>// //<>// //<>//
+    newX += xVel; //<>// //<>// //<>// //<>//
     xVel *= 0.995f;
     
     newY += yVel;
@@ -383,9 +383,15 @@ void animatePixel_evaporateCircle(int[] coords) {
   }
 }
 
-void animatePixel_arcToEdge(int[] coords) {  
+void animatePixel_arcToEdge(int[] coords) {
+  //int rx = (int)random(width);
+  //int ry = (int)random(height);
   float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1] - (coords[X1] - HALF_WIDTH) * LARGEST_DIM, coords[Y1] + (coords[Y1] - HALF_HEIGHT) * LARGEST_DIM };
-  float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] - (coords[X2] - HALF_WIDTH) * LARGEST_DIM, coords[Y2] + (coords[Y2] - HALF_HEIGHT) * LARGEST_DIM };
+  float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] - (coords[X2] - HALF_WIDTH) * LARGEST_DIM, coords[Y2] + (coords[Y2] - HALF_HEIGHT) * LARGEST_DIM };  
+  //float[] startSegment = new float[] { -100, coords[Y1], coords[X1], coords[Y1] };
+  //float[] endSegment = new float[] { -100, coords[Y2], coords[X2], coords[Y2] };  
+  //float[] startSegment = new float[] { coords[X1], coords[Y1], coords[X1], coords[Y1] + LARGEST_DIM };
+  //float[] endSegment = new float[] { coords[X2], coords[Y2], coords[X2] + LARGEST_DIM, coords[Y2] };
     
   float[] startEdgePoint = getClosestEdgePoint(startSegment);
   float[] endEdgePoint = getClosestEdgePoint(endSegment);
