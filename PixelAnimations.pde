@@ -440,6 +440,30 @@ void animatePixel_arcToEdge(int[] coords) {
   }
 }
 
+void animatePixel_ripple(int[] coords) {  
+  float newX, newY;
+  float distanceToCenter = dist(coords[X1], coords[Y1], HALF_WIDTH, HALF_HEIGHT);
+  float cornerDistance = dist(0, 0, HALF_WIDTH, HALF_HEIGHT);
+  int moveFrame = (int)lerp(
+      0, TOTAL_ANIMATION_FRAMES / 2,
+      distanceToCenter / cornerDistance);
+
+  int frame;
+  for(frame = startFrame; frame < moveFrame; ++frame) {
+    plot(coords[X1], coords[Y1], coords[COLOR], frame);
+  }
+  for(frame = frame; frame - moveFrame < TOTAL_ANIMATION_FRAMES / 2; ++frame) {
+    //println((frame - moveFrame) * 2);
+    int easeFrame = (frame - moveFrame) * 2;
+    newX = lerp(coords[X1], coords[X2], easing[easeFrame][easeMethodX]);
+    newY = lerp(coords[Y1], coords[Y2], easing[easeFrame][easeMethodY]); 
+    roundAndPlot(newX, newY, coords[COLOR], frame);
+  }
+  for(frame = frame; frame < TOTAL_ANIMATION_FRAMES; ++frame) {
+    plot(coords[X2], coords[Y2], coords[COLOR], frame);
+  }
+}
+
 // make it look like a wave
 // random of all available animations
 // raindrops based on distance

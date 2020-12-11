@@ -17,7 +17,8 @@ private enum Animation {
   EVAPORATE,
   EVAPORATE_CIRCLE,
   WIGGLE,
-  ARC_TO_EDGE
+  ARC_TO_EDGE,
+  RIPPLE
 }
 final int NUM_ANIMATIONS = Animation.values().length;
 Animation curAnimation;
@@ -50,9 +51,9 @@ void resetAnimator() {
   startFrame = 0;
     
   // OVERRIDES //
-  //curAnimation = Animation.WIGGLE;
+  curAnimation = Animation.RIPPLE;
   //curAnimation = Animation.FALLING_SAND;
-  curAnimation = Animation.ARC_TO_EDGE;
+  //curAnimation = Animation.ARC_TO_EDGE;
   //curAnimation = Animation.EVAPORATE_CIRCLE;
   //easeMethodX = 2;
 }
@@ -74,6 +75,7 @@ void createTransitionAnimation() {
     default:
       for(int i = 0; i < NUM_ANIMATION_THREADS; ++i)
         thread("createAnimationFrames" + i);
+        //createAnimationFrames(0);
       break;
   }
 }
@@ -121,6 +123,8 @@ void createAnimationFrames(int offset) {
         animatePixel_noisefield(coords); break;
       case ARC_TO_EDGE: 
         animatePixel_arcToEdge(coords); break;
+      case RIPPLE: 
+        animatePixel_ripple(coords); break;
       //case ANIMATION_CIRCLE_AXIS: 
       //  animatePixel_circleAxis(c, coords); break;
     }
