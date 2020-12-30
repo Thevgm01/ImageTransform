@@ -53,7 +53,19 @@ int[] backgroundIndexes;
 int[] animationIndexes;
 BitSet pixelsLegacyAnalyzed;
 
-int curState;
+private enum State {
+  ANALYSIS,
+  ANIMATION,
+  ANIMATION_ACTIVE,
+  TRANSITION,
+  PAUSE1,
+  FADE,
+  PAUSE2,
+  RESET
+}
+//final int NUM_STATES = State.values().length;
+State curState;
+
 int curFrame;
 boolean frameStepping = false;
 
@@ -104,9 +116,11 @@ void setup() {
 }
 
 void mouseClicked() {
-  if(curState > 3) progressSlide = PI;
-  if(preAnimate && curState > 3)       curState = 3;
-  else if(!preAnimate && curState > 1) curState = 1;
+  if(curState != State.ANALYSIS && 
+     curState != State.ANIMATION) {
+    if(preAnimate) curState = State.TRANSITION;
+    else curState = State.ANIMATION_ACTIVE;
+  }
   curFrame = 0;
   frameStepping = false;
   record = false;
@@ -130,7 +144,7 @@ void draw() {
   }
   
  switch(curState) {
-    case 0: // Determine where pixels in the start image should end up
+    case ANALYSIS: // Determine where pixels in the start image should end up
       boolean stillAnalyzing = numAnalyzed < TOTAL_SIZE,
               stillMakingBackgrounds = preAnimate && numBackgrounds < TOTAL_ANIMATION_FRAMES;
       background(startImg);
@@ -147,15 +161,16 @@ void draw() {
             println("Pixels analyzed with legacy method: " + pixelsLegacyAnalyzed.cardinality());
         }
         if(preAnimate) {
-          curState++;
+          curState = State.ANIMATION;
           animationFrames = nextAnimationFrames;
           thread("loadNextImageAndBackgrounds");
           createTransitionAnimation();
+        } else {
+          curState = State.ANIMATION_ACTIVE;
         }
-        curState++;
       }
       break;
-    case 1: // Actively animate the transition
+    case ANIMATION_ACTIVE: // Actively animate the transition
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
         float frac = (float)curFrame / TOTAL_ANIMATION_FRAMES;
         fadeToBlack(startImg, frac);
@@ -167,9 +182,9 @@ void draw() {
         moveProgressBar(-progressSlideSpeed);
       } else if(cycle) {
         curFrame = 0;
-        curState += 3;
+        curState = State.PAUSE1;
       } break;
-    case 2: // Animate the transition in the background, storing the frames for later
+    case ANIMATION: // Animate the transition in the background, storing the frames for later
       if(numAnimated < TOTAL_SIZE) {
         background(startImg);
         //Fix this :)
@@ -179,9 +194,9 @@ void draw() {
         if(curAnimation == Animation.WIGGLE) {
           thread("randomizeNoise");
         }
-        curState++;
+        curState = State.TRANSITION;
       } break;
-    case 3: // Play the pre-animated transition as a sort of movie
+    case TRANSITION: // Play the pre-animated transition as a sort of movie
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
         background(animationFrames[curFrame]);
         if(!frameStepping) ++curFrame; 
@@ -189,32 +204,32 @@ void draw() {
         moveProgressBar(-progressSlideSpeed);
       } else if(cycle) {
         curFrame = 0;
-        curState++;
+        curState = State.PAUSE1;
       } break;
-    case 4: // Pause for a moment to show the assembled image
+    case PAUSE1: // Pause for a moment to show the assembled image
       if(curFrame < TOTAL_DELAY_FRAMES) {
         if(!frameStepping) ++curFrame;
       } else { 
         assembledImg = get();
         curFrame = 0;
-        curState++;
+        curState = State.FADE;
       } break;
-    case 5: // Fade gently between the assembled image and the true final image
+    case FADE: // Fade gently between the assembled image and the true final image
       if(curFrame < TOTAL_FADE_FRAMES) {
         if(!frameStepping) fadeToImage(assembledImg, endImg, (float)curFrame++ / TOTAL_FADE_FRAMES);
       } else {
         curFrame = 0;
-        curState++;
+        curState = State.PAUSE2;
       } break;
-    case 6: // Pause for a moment on the final image, then restart the cycle
+    case PAUSE2: // Pause for a moment on the final image, then restart the cycle
       background(endImg);
       if(curFrame < TOTAL_DELAY_FRAMES) {
         moveProgressBar(progressSlideSpeed);
         if(!frameStepping) ++curFrame;
       } else {
-        curState++;
+        curState = State.RESET;
       } break;
-    default:
+    case RESET:
       if(nextImg == null){
         //println("Next image not yet loaded!");
         break;
@@ -230,6 +245,7 @@ void draw() {
       numAnimated = 0;
       
       resetAll();
+      break;
   }
   if(ui_showProgress) showProgress(numAnalyzed, numAnimated);
 }
@@ -252,7 +268,7 @@ void resetAll() {
   resetAnimator();
   
   curFrame = 0;
-  curState = 0;
+  curState = State.ANALYSIS;
   
   resetAverage();
   

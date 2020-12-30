@@ -52,7 +52,7 @@ void resetAnimator() {
     
   // OVERRIDES //
   //curAnimation = Animation.RIPPLE;
-  curAnimation = Animation.FALLING_SAND;
+  //curAnimation = Animation.FALLING_SAND;
   //curAnimation = Animation.ARC_TO_EDGE;
   //curAnimation = Animation.EVAPORATE_CIRCLE;
   //easeMethodX = 2;

@@ -21,13 +21,13 @@ int numAnalyzedPerFrame_maxIndex = 0;
 void showAllInfo(int cur, int max, String label) {
   advanceAverageTracker(cur - lastCur);
   
-  if(curState == 0 && switchToLegacyAnalysisOnSlowdown && pixelsLegacyAnalyzed.previousSetBit(cur) >= lastCur) {
+  if(curState == State.ANALYSIS && switchToLegacyAnalysisOnSlowdown && pixelsLegacyAnalyzed.previousSetBit(cur) >= lastCur) {
     fillColor = lerpColor(fillColor, redColor, colorChangeSpeed);
   } else {
     fillColor = lerpColor(fillColor, whiteColor, colorChangeSpeed);
   }
   
-  if(ui_showCalculatedPixels && curState == 0) {
+  if(ui_showCalculatedPixels && curState == State.ANALYSIS) {
     noStroke();
     fill(fillColor);
     int topOfRectangle = lastCur / width;
@@ -76,9 +76,10 @@ void showAnalysisText(int cur, int max, String label) {
 
 void showProgress(int numAnalyzed, int numAnimated) {  
   float frac = 0f;
-  if(curState < 2) frac = (float)numAnalyzed / TOTAL_SIZE / 2f;
-  else if(curState == 2) frac = 0.5f + (float)numAnimated / TOTAL_SIZE / 2f;
-  else if(curState == 3) frac = 1f;
+  if(curState == State.ANALYSIS) frac = (float)numAnalyzed / TOTAL_SIZE / 2f;
+  else if(curState == State.ANIMATION) frac = 0.5f + (float)numAnimated / TOTAL_SIZE / 2f;
+  else if(curState == State.TRANSITION) frac = 1f;
+  else frac = 0f;
         
   if(ui_showProgressBar) showProgressBar(frac);
   if(ui_showProgressBorder) showProgressBorder(frac);
