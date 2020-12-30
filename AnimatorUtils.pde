@@ -44,6 +44,11 @@ void randomizeEasing() {
   direction = random(1) > 0.5f ? 1 : -1;
 }
 
+// Two ways of varying easing
+// 1: Start the animation on a different frame based on x, and make it take less time overall
+// 2: Lerp between polynomial easing strengths based on x
+// where x can be anything, like the distance from the center, the x position, or the saturation
+
 float easeFunc(float t, float strength) {
   return pow(t, strength)/(pow(t, strength)+pow((1-t), strength));
 }

@@ -446,6 +446,7 @@ void animatePixel_ripple(int[] coords) {
   float cornerDistance = dist(0, 0, HALF_WIDTH, HALF_HEIGHT);
   int moveFrame = (int)lerp(
       0, TOTAL_ANIMATION_FRAMES / 2,
+      //(float)coords[X1] / WIDTH);
       distanceToCenter / cornerDistance);
 
   int frame;
@@ -453,7 +454,6 @@ void animatePixel_ripple(int[] coords) {
     plot(coords[X1], coords[Y1], coords[COLOR], frame);
   }
   for(frame = frame; frame - moveFrame < TOTAL_ANIMATION_FRAMES / 2; ++frame) {
-    //println((frame - moveFrame) * 2);
     int easeFrame = (frame - moveFrame) * 2;
     newX = lerp(coords[X1], coords[X2], easing[easeFrame][easeMethodX]);
     newY = lerp(coords[Y1], coords[Y2], easing[easeFrame][easeMethodY]); 

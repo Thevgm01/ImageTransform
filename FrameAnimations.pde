@@ -1,5 +1,5 @@
 void animate_fallingSand() {
-  int[] sandLastRadius = new int[width];
+  int[] sandLastHeight = new int[WIDTH];
   float velocity = 0;
   //float gravity = 0.15f;
   
@@ -30,36 +30,36 @@ void animate_fallingSand() {
       if (falling.get(i)) {
         coords[Y1] += velocity;
 
-        if (height - coords[Y1] - 1 < sandLastRadius[coords[X1]]) {
+        if (height - coords[Y1] - 1 < sandLastHeight[coords[X1]]) {
           falling.set(i, false);
   
           boolean searching = true;
-          int radius = sandLastRadius[coords[X1]];
+          int searchHeight = sandLastHeight[coords[X1]];
           while (searching) {
-            for (int k = 0; k <= radius; k++) {
+            for (int k = 0; k <= searchHeight; k++) {
               //check x + radius - i, y + i
               if (
-                coords[X1] + radius - k < width &&
-                sandLastRadius[coords[X1] + radius - k] <= k) { 
-                sandLastRadius[coords[X1]] = radius; 
-                coords[X1] += radius - k; 
+                coords[X1] + searchHeight - k < width &&
+                sandLastHeight[coords[X1] + searchHeight - k] <= k) { 
+                sandLastHeight[coords[X1]] = searchHeight; 
+                coords[X1] += searchHeight - k; 
                 searching = false; 
                 break;
               } else if (
-                k != radius && 
-                coords[X1] - radius + k >= 0 &&
-                sandLastRadius[coords[X1] - radius + k] <= k) { 
-                  sandLastRadius[coords[X1]] = radius; 
-                  coords[X1] -= radius - k; 
+                k != searchHeight && 
+                coords[X1] - searchHeight + k >= 0 &&
+                sandLastHeight[coords[X1] - searchHeight + k] <= k) { 
+                  sandLastHeight[coords[X1]] = searchHeight; 
+                  coords[X1] -= searchHeight - k; 
                   searching = false; 
                   break;
               }
             }
-            radius++;
+            ++searchHeight;
           }
   
-          ++sandLastRadius[coords[X1]];
-          coords[Y1] = height - sandLastRadius[coords[X1]];
+          ++sandLastHeight[coords[X1]];
+          coords[Y1] = height - sandLastHeight[coords[X1]];
           /*
           ArrayList<Integer> linked = linkedCoords.get(newOrder[i]);
           for(int j = 0; j < linked.size(); ++j) {
