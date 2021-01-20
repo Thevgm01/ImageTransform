@@ -61,8 +61,8 @@ void showAnalysisText(int cur, int max, String label) {
   String titles = "Current:\nNext\n\n"
                   + label + "\n" + cur + "/" + max + "\n"
                   + "\npercent:\nper frame:\nseconds:\nper second:\nframerate:";
-  String values = startImgName + "\n"
-                  + endImgName + "\n\n\n\n\n"
+  String values = startImg.name + "\n"
+                  + endImg.name + "\n\n\n\n\n"
                   + round(((float)cur / max) * 1000)/10f + "\n"
                   + round(averageTracker) + "\n"
                   + (((float)millis() - averageTrackerStartTime)/1000f) + "\n"
@@ -74,11 +74,10 @@ void showAnalysisText(int cur, int max, String label) {
   text(values, 75, 15);
 }
 
-void showProgress(int numAnalyzed, int numAnimated) {  
+void showProgress(int numAnalyzed) {  
   float frac = 0f;
-  if(curState == State.ANALYSIS) frac = (float)numAnalyzed / TOTAL_SIZE / 2f;
-  else if(curState == State.ANIMATION) frac = 0.5f + (float)numAnimated / TOTAL_SIZE / 2f;
-  else if(curState == State.TRANSITION) frac = 1f;
+  if(curState == State.ANALYSIS) frac = (float)numAnalyzed / TOTAL_SIZE;
+  else if(curState == State.ANIMATION) frac = 1f;
   else frac = 0f;
         
   if(ui_showProgressBar) showProgressBar(frac);

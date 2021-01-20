@@ -9,7 +9,7 @@ final int RGB_CUBE_Y_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 1;
 final int RGB_CUBE_Z_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 2;
 final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_DIMENSIONS_BIT_SHIFT * 3);
 
-// RGB          Indexes
+// RGB    Indexes
 ArrayList<ArrayList<Integer>> RGB_cube;
 ArrayList<ArrayList<Integer>> RGB_cube_recordedResults;
 
@@ -31,8 +31,8 @@ void analyzeStartImage() {
       RGB_cube_recordedResults.get(i).set(0, 1);
   }
   
-  for(int i = 0; i < TOTAL_SIZE; ++i) {
-    color pixel = startImg.pixels[i];
+  for(int i = 0; i < startImg.length(); ++i) {
+    color pixel = startImg.getPixel(i);
     if(ignoreBlack && brightness(pixel) == 0) continue;
     
     int pixelR = (pixel >> RED & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
@@ -56,7 +56,7 @@ void findBestFitThread6() { findBestFitThread(6); }
 void findBestFitThread7() { findBestFitThread(7); }
 
 void findBestFitThread(int offset) {
-  for(int i = offset; i < TOTAL_SIZE; i += NUM_ANALYSIS_THREADS) {          
+  for(int i = offset; i < endImg.length(); i += NUM_ANALYSIS_THREADS) {          
     findBestFit(i);
     ++analysisIndexes[offset];
   }
@@ -65,7 +65,7 @@ void findBestFitThread(int offset) {
 // Find a pixel from the start image that most closely matches the 
 // given pixel from the end image
 void findBestFit(int index) {
-  color target = endImg.pixels[index];
+  color target = endImg.getPixel(index);
   if(ignoreBlack && brightness(target) == 0) {
     newOrder[index] = -1;  
     return;
@@ -182,7 +182,7 @@ int findBestFitFromList(color target, ArrayList<Integer> samples) {
   
   for(int i = 0; i < samples.size(); ++i) {
     int index = samples.get(i);
-    color cur = endImg.pixels[index];
+    color cur = endImg.getPixel(index);
     int curFit = 
       abs(targetR - (cur >> RED & 0xff)) +
       abs(targetG - (cur >> GREEN & 0xff)) +

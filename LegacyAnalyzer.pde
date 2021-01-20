@@ -23,7 +23,7 @@ void findBestFitThread_legacy(int offset) {
 // Find a pixel from the start image that most closely matches the 
 // given pixel from the end image
 void findBestFit_legacy(int index) {
-  color target = endImg.pixels[index];  
+  color target = endImg.getPixel(index);  
   int targetR = target >> RED & 0xff,
       targetG = target >> GREEN & 0xff,
       targetB = target >> BLUE & 0xff;

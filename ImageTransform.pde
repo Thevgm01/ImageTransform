@@ -17,7 +17,7 @@ final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 2;//3;
 
 // CONFIGURATION //
 final boolean ignoreBlack = true;
-final boolean preAnimate = true; //Dramatically slows loading speed, but required for maintaining high framerate at large resolutions
+final boolean preAnimate = false; //Dramatically slows loading speed, but required for maintaining high framerate at large resolutions
 final boolean cycle = true;
 final boolean cacheAnalysisResults = true;
 final boolean switchToLegacyAnalysisOnSlowdown = false;
@@ -28,16 +28,13 @@ final boolean ui_showAnalysisGraph = false;
 final boolean ui_showProgress = true;
 final boolean ui_showProgressBar = false;
 final boolean ui_showProgressBorder = true;
-final boolean ui_showEndImage = true;
+final boolean ui_showEndImage = false;
 final boolean ui_showEndImageCalculatedPixels = true;
 
 // IMAGES IN MEMORY //
-String startImgName;
-String endImgName;
-String nextImgName;
-PImage startImg;
-PImage endImg;
-PImage nextImg;
+CustomImage startImg;
+CustomImage endImg;
+CustomImage nextImg;
 PImage endImgSmall;
 PImage nextImgSmall;
 PImage assembledImg;
@@ -56,8 +53,6 @@ BitSet pixelsLegacyAnalyzed;
 private enum State {
   ANALYSIS,
   ANIMATION,
-  ANIMATION_ACTIVE,
-  TRANSITION,
   PAUSE1,
   FADE,
   PAUSE2,
@@ -74,15 +69,13 @@ String recordingFilename = "frames/frame_#####";
 
 void settings() {
   if(FULLSCREEN) fullScreen(0);
-  else size(WIDTH, HEIGHT); 
+  else size(WIDTH, HEIGHT, P2D); 
 }
 
 void setup() {
   frameRate(DESIRED_FRAMERATE);
   //colorMode(HSB);
-  
-  initializeAnimator();
-  
+    
   if(NUM_ANALYSIS_THREADS > MAX_THREADS) MAX_THREADS = NUM_ANALYSIS_THREADS;
   if(NUM_ANIMATION_THREADS > MAX_THREADS) MAX_THREADS = NUM_ANIMATION_THREADS;
   analysisIndexes = new int[MAX_THREADS];
@@ -102,24 +95,17 @@ void setup() {
       RGB_cube_recordedResults.get(i).add(1);
   }
   
-  loadNextImage();
-  startImgName = nextImgName;
-  endImgName = nextImgName; // Prevent loading the same image twice in the beginning
+  loadNextCustomImage();
   startImg = nextImg;
-  loadNextImage();
-  endImgName = nextImgName;
+  loadNextCustomImage();
   endImg = nextImg;
-  endImgSmall = nextImgSmall;
-  thread("createStartBackgrounds");
-      
+
   resetAll();
 }
 
 void mouseClicked() {
-  if(curState != State.ANALYSIS && 
-     curState != State.ANIMATION) {
-    if(preAnimate) curState = State.TRANSITION;
-    else curState = State.ANIMATION_ACTIVE;
+  if(curState != State.ANALYSIS) {
+    curState = State.ANIMATION;
   }
   curFrame = 0;
   frameStepping = false;
@@ -136,69 +122,32 @@ void keyPressed() {
 }
 
 void draw() {
-  int numAnalyzed = 0, numBackgrounds = 0, numAnimated = 0;
+  int numAnalyzed = 0;
   for(int i = 0; i < MAX_THREADS; i++) {
     numAnalyzed += analysisIndexes[i];
-    numBackgrounds += backgroundIndexes[i];
-    numAnimated += animationIndexes[i];
   }
   
- switch(curState) {
+  background(0);
+  
+  switch(curState) {
     case ANALYSIS: // Determine where pixels in the start image should end up
-      boolean stillAnalyzing = numAnalyzed < TOTAL_SIZE,
-              stillMakingBackgrounds = preAnimate && numBackgrounds < TOTAL_ANIMATION_FRAMES;
-      background(startImg);
+      boolean stillAnalyzing = numAnalyzed < endImg.length();
+      startImg.drawImageCentered();
       moveProgressBar(progressSlideSpeed);
-      showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
-      //if(stillProcessing) showAllInfo(numAnalyzed, TOTAL_SIZE, "Pixels analyzed");
-      //else if(stillMakingBackgrounds) showAllInfo(numFrames, TOTAL_ANIMATION_FRAMES, "Backgrounds created");
-      //else {
-      if(!stillAnalyzing && !stillMakingBackgrounds) {
+      showAllInfo(numAnalyzed, endImg.length(), "Pixels analyzed");
+      if(!stillAnalyzing) {
         resetAverage();
-        //if(record) saveFrame(recordingFilename);
         if(switchToLegacyAnalysisOnSlowdown) {
           if(!pixelsLegacyAnalyzed.isEmpty())
             println("Pixels analyzed with legacy method: " + pixelsLegacyAnalyzed.cardinality());
         }
-        if(preAnimate) {
-          curState = State.ANIMATION;
-          animationFrames = nextAnimationFrames;
-          thread("loadNextImageAndBackgrounds");
-          createTransitionAnimation();
-        } else {
-          curState = State.ANIMATION_ACTIVE;
-        }
-      }
-      break;
-    case ANIMATION_ACTIVE: // Actively animate the transition
+        resetAnimator();
+        curState = State.ANIMATION;
+      } break;
+    case ANIMATION: // Actively animate the transition
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
         float frac = (float)curFrame / TOTAL_ANIMATION_FRAMES;
-        fadeToBlack(startImg, frac);
-        //loadPixels();
-        //createAnimationFrame(pixels, curFrame);
-        //updatePixels();
-        if(!frameStepping) ++curFrame; 
-        if(record) saveFrame(recordingFilename);
-        moveProgressBar(-progressSlideSpeed);
-      } else if(cycle) {
-        curFrame = 0;
-        curState = State.PAUSE1;
-      } break;
-    case ANIMATION: // Animate the transition in the background, storing the frames for later
-      if(numAnimated < TOTAL_SIZE) {
-        background(startImg);
-        //Fix this :)
-        moveProgressBar(progressSlideSpeed);
-        showAllInfo(numAnimated, TOTAL_SIZE, "Pixels animated");
-      } else {
-        if(curAnimation == Animation.WIGGLE) {
-          thread("randomizeNoise");
-        }
-        curState = State.TRANSITION;
-      } break;
-    case TRANSITION: // Play the pre-animated transition as a sort of movie
-      if(curFrame < TOTAL_ANIMATION_FRAMES) {
-        background(animationFrames[curFrame]);
+        animate(frac);
         if(!frameStepping) ++curFrame; 
         if(record) saveFrame(recordingFilename);
         moveProgressBar(-progressSlideSpeed);
@@ -216,13 +165,13 @@ void draw() {
       } break;
     case FADE: // Fade gently between the assembled image and the true final image
       if(curFrame < TOTAL_FADE_FRAMES) {
-        if(!frameStepping) fadeToImage(assembledImg, endImg, (float)curFrame++ / TOTAL_FADE_FRAMES);
+        //if(!frameStepping) fadeToImage(assembledImg, endImg, (float)curFrame++ / TOTAL_FADE_FRAMES);
       } else {
         curFrame = 0;
         curState = State.PAUSE2;
       } break;
     case PAUSE2: // Pause for a moment on the final image, then restart the cycle
-      background(endImg);
+      //background(endImg);
       if(curFrame < TOTAL_DELAY_FRAMES) {
         moveProgressBar(progressSlideSpeed);
         if(!frameStepping) ++curFrame;
@@ -235,44 +184,39 @@ void draw() {
         break;
       }
       
-      startImgName = endImgName;
       startImg = endImg;
-      endImgName = nextImgName;
       endImg = nextImg;
       endImgSmall = nextImgSmall;
       
       numAnalyzed = 0;
-      numAnimated = 0;
       
       resetAll();
       break;
   }
-  if(ui_showProgress) showProgress(numAnalyzed, numAnimated);
+  if(ui_showProgress) showProgress(numAnalyzed);
 }
 
 void resetAll() {
-  println(startImgName);
-  randomizeImage(startImg.pixels, startColorsRandomized, startIndexesRandomized);
+  println(startImg.name);
+  //randomizeImage(startImg.pixels, startColorsRandomized, startIndexesRandomized);
 
   for(int i = 0; i < MAX_THREADS; i++) {
     analysisIndexes[i] = 0;
     //frameIndexes[i] = 0;
     animationIndexes[i] = 0;
   }
-  pixelsLegacyAnalyzed = new BitSet(endImg.pixels.length);
+  //pixelsLegacyAnalyzed = new BitSet(endImg.pixels.length);
   animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
 
   if(LEGACY_ANALYSIS) analyzeStartImage_legacy();
   else analyzeStartImage();
- 
-  resetAnimator();
-  
+   
   curFrame = 0;
   curState = State.ANALYSIS;
   
   resetAverage();
   
-  background(startImg);
+  //background(startImg);
 }
 
 void fadeToBlack(PImage back, float frac) {
