@@ -35,9 +35,6 @@ final boolean ui_showEndImageCalculatedPixels = true;
 CustomImage startImg;
 CustomImage endImg;
 CustomImage nextImg;
-CustomImage endImgSmall;
-CustomImage nextImgSmall;
-CustomImage coordsDataSmall;
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
@@ -190,7 +187,6 @@ void draw() {
 void resetAll() {
   startImg = endImg;
   endImg = nextImg;
-  endImgSmall = nextImgSmall;
   
   println(startImg.name);
   //randomizeImage(startImg.pixels, startColorsRandomized, startIndexesRandomized);

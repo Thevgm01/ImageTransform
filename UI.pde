@@ -49,7 +49,7 @@ void showAllInfo(int cur, int max, String label) {
     endImg.draw(-endImg.width(), 0);
     if(ui_showEndImageCalculatedPixels) {
       coordsData.updatePixels();
-      coordsDataSmall.draw(-endImg.width(), endImg.height());
+      image(coordsData, -endImg.width(), endImg.height());
     }
     popMatrix();
     /*

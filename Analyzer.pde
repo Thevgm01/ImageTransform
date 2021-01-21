@@ -34,7 +34,6 @@ void analyzeStartImage() {
   resetRGBCube();
   
   coordsData = createImage(endImg.width(), endImg.height(), ARGB);
-  coordsDataSmall = new CustomImage(coordsData);
 
   for(int i = 0; i < NUM_ANALYSIS_THREADS; ++i) {
     thread("findBestFitThread" + i);
