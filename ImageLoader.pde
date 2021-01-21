@@ -58,4 +58,5 @@ void loadNextCustomImage() {
     String nextImgName = getRandomImageName("");
     nextImg = new CustomImage(nextImgName);
   } while(!nextImg.isValid());
+  nextImgSmall = nextImg.copy(400, 200);
 }

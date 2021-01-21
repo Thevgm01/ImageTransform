@@ -9,20 +9,32 @@ class CustomImage {
   public int length() { return img.pixels.length; }
   public color[] pixels() { return img.pixels; }
   public color getPixel(int index) { return img.pixels[index]; }
-  public PImage getImage() { return img; }
+  //public PImage getImage() { return img; }
   public boolean isValid() { return img.width > 0 && img.height > 0; }
   
-  public void drawImageCentered() {
-    image(img, imgx, imgy);
+  CustomImage(PImage img) {
+    this.img = img;
+  }
+  
+  CustomImage(String name, int w, int h) {
+    this.name = name;
+    this.img = loadImage(name);
+    resizeImage(w, h);
   }
   
   CustomImage(String name) {
-    this.name = name;
-    this.img = loadImage(name);
-    resizeImage(img, width, height);
+    this(name, width, height);
+  }
+  
+  public CustomImage copy() {
+    return new CustomImage(name); 
+  }
+  
+  public CustomImage copy(int w, int h) {
+    return new CustomImage(name, w, h);
   }
 
-  private void resizeImage(PImage img, int w, int h) {
+  public void resizeImage(int w, int h) {
     if(!isValid()) return;
     
     img.resize(w, 0); 
@@ -30,5 +42,13 @@ class CustomImage {
     
     imgx = width/2 - img.width/2;
     imgy = height/2 - img.height/2;
+  }
+  
+  public void drawImageCentered() {
+    image(img, imgx, imgy);
+  }
+  
+  public void draw(int x, int y) {
+    image(img, x, y);
   }
 }

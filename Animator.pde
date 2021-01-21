@@ -4,6 +4,8 @@ final String[] SHADERS = {"linear"};
 PShader shader;
 PImage startCoords;
 
+PShape test;
+
 void resetAnimator() {
   String randomShader = SHADERS[(int)random(SHADERS.length)];
   
@@ -15,16 +17,28 @@ void resetAnimator() {
   
   startCoords = createImage(endImg.width(), endImg.height(), RGB);
   
+  //test = createShape(GROUP);
+  test = createShape();
+  test.beginShape(POINTS);
+  test.strokeCap(PROJECT);
   for(int i = 0; i < endImg.length(); ++i) {
-    int j = newOrder[i];
-    startCoords.pixels[i] = 
-      ((j % startImg.width()) << RED) +   // Put the x coordinate into the red value
-      ((j / startImg.width()) << GREEN) + // and the y coordinate in the green value
-      (0 << BLUE);
     //startCoords.pixels[i] = color(random(255), random(255), random(255));
     //println(red(startCoords.pixels[i]) + ", " + green(startCoords.pixels[i]));
+    test.stroke(color(random(255), 0, 0));
+    test.vertex(i % endImg.width(), i / endImg.width());
+    /*
+    //PShape temp = createShape(RECT, i % endImg.width(), i / endImg.width(), 1, 1);
+    PShape temp = createShape();
+    
+    temp.beginShape(POINTS);
+    temp.vertex(i % endImg.width(), i / endImg.width());
+    temp.endShape(CLOSE);
+
+    test.addChild(temp);
+    */
   }
-  
+  test.endShape();
+
   //shader.set("startCoords", startCoords);
   shader.set("textureA", startCoords);
 }
@@ -34,7 +48,8 @@ void animate(float frac) {
   
   shader.set("frac", frac);
   shader(shader);  
-  endImg.drawImageCentered();
+  shape(test);
+  //endImg.drawImageCentered();
   //image(startCoords, 0, 0);
   
   resetShader();

@@ -43,7 +43,16 @@ void showAllInfo(int cur, int max, String label) {
   }
   if(ui_showEndImage) {
     tint(255, 220);
-    image(endImgSmall, width - endImgSmall.width, 0);
+    pushMatrix();
+    translate(width, 0);
+    scale(400f/width);
+    endImg.draw(-endImg.width(), 0);
+    if(ui_showEndImageCalculatedPixels) {
+      coordsData.updatePixels();
+      coordsDataSmall.draw(-endImg.width(), endImg.height());
+    }
+    popMatrix();
+    /*
     if(ui_showEndImageCalculatedPixels) {
       noStroke();
       fill(fillColor);
@@ -51,7 +60,7 @@ void showAllInfo(int cur, int max, String label) {
       float curHeight = endImgSmall.height * (float) (cur - lastCur) / max;
       //if(curHeight < 1) curHeight = 1;
       rect(width - endImgSmall.width, ceil(lastCurHeight), endImgSmall.width, ceil(curHeight));
-    }
+    }*/
   }
   
   lastCur = cur;

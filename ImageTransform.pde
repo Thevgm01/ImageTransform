@@ -28,22 +28,19 @@ final boolean ui_showAnalysisGraph = false;
 final boolean ui_showProgress = true;
 final boolean ui_showProgressBar = false;
 final boolean ui_showProgressBorder = true;
-final boolean ui_showEndImage = false;
+final boolean ui_showEndImage = true;
 final boolean ui_showEndImageCalculatedPixels = true;
 
 // IMAGES IN MEMORY //
 CustomImage startImg;
 CustomImage endImg;
 CustomImage nextImg;
-PImage endImgSmall;
-PImage nextImgSmall;
-PImage assembledImg;
-PImage[] animationFrames;
-PImage[] nextAnimationFrames;
+CustomImage endImgSmall;
+CustomImage nextImgSmall;
+CustomImage coordsDataSmall;
 
 color[] startColorsRandomized;
 int[] startIndexesRandomized;
-int[] newOrder;
 
 int[] analysisIndexes;
 int[] backgroundIndexes;
@@ -84,7 +81,6 @@ void setup() {
   
   startColorsRandomized = new color[TOTAL_SIZE];
   startIndexesRandomized = new int[TOTAL_SIZE];
-  newOrder = new int[TOTAL_SIZE];
   
   RGB_cube = new ArrayList<ArrayList<Integer>>();
   RGB_cube_recordedResults = new ArrayList<ArrayList<Integer>>();
@@ -96,9 +92,9 @@ void setup() {
   }
   
   loadNextCustomImage();
-  startImg = nextImg;
-  loadNextCustomImage();
   endImg = nextImg;
+  loadNextCustomImage();
+  //endImg = nextImg;
 
   resetAll();
 }
@@ -141,6 +137,7 @@ void draw() {
           if(!pixelsLegacyAnalyzed.isEmpty())
             println("Pixels analyzed with legacy method: " + pixelsLegacyAnalyzed.cardinality());
         }
+        thread("loadNextCustomImage");
         resetAnimator();
         curState = State.ANIMATION;
       } break;
@@ -159,12 +156,13 @@ void draw() {
       if(curFrame < TOTAL_DELAY_FRAMES) {
         if(!frameStepping) ++curFrame;
       } else { 
-        assembledImg = get();
+        //assembledImg = get();
         curFrame = 0;
         curState = State.FADE;
       } break;
     case FADE: // Fade gently between the assembled image and the true final image
       if(curFrame < TOTAL_FADE_FRAMES) {
+        if(!frameStepping) ++curFrame;
         //if(!frameStepping) fadeToImage(assembledImg, endImg, (float)curFrame++ / TOTAL_FADE_FRAMES);
       } else {
         curFrame = 0;
@@ -183,13 +181,6 @@ void draw() {
         //println("Next image not yet loaded!");
         break;
       }
-      
-      startImg = endImg;
-      endImg = nextImg;
-      endImgSmall = nextImgSmall;
-      
-      numAnalyzed = 0;
-      
       resetAll();
       break;
   }
@@ -197,6 +188,10 @@ void draw() {
 }
 
 void resetAll() {
+  startImg = endImg;
+  endImg = nextImg;
+  endImgSmall = nextImgSmall;
+  
   println(startImg.name);
   //randomizeImage(startImg.pixels, startColorsRandomized, startIndexesRandomized);
 
@@ -206,10 +201,11 @@ void resetAll() {
     animationIndexes[i] = 0;
   }
   //pixelsLegacyAnalyzed = new BitSet(endImg.pixels.length);
-  animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
+  //animationFrames = new PImage[TOTAL_ANIMATION_FRAMES];
 
-  if(LEGACY_ANALYSIS) analyzeStartImage_legacy();
-  else analyzeStartImage();
+  //if(LEGACY_ANALYSIS) analyzeStartImage_legacy();
+  //else analyzeStartImage();
+  analyzeStartImage();
    
   curFrame = 0;
   curState = State.ANALYSIS;

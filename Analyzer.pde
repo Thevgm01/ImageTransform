@@ -9,6 +9,16 @@ final int RGB_CUBE_Y_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 1;
 final int RGB_CUBE_Z_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 2;
 final int RGB_CUBE_TOTAL_SIZE = 1 << (RGB_CUBE_DIMENSIONS_BIT_SHIFT * 3);
 
+/* The RGB cube is a multidimensional arraylist that stores the indexes of all the pixels in the start image.
+ *
+ * The indexes are arranged by their corresponding Red, Green, and Blue values. 
+ *
+ * The outermost arraylist is very long and has a place for each possible value of RGB, divided by the bit shift.
+ * Indexes in this outermost list should only be accessed via coordsToCubeIndex because of the divisions that occur.
+ *
+ * The next arraylist contains all the indexes of the start image that match that RGB value. 
+ */
+ 
 // RGB    Indexes
 ArrayList<ArrayList<Integer>> RGB_cube;
 ArrayList<ArrayList<Integer>> RGB_cube_recordedResults;
@@ -18,11 +28,20 @@ final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
 final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
 
-int coordsToIndex(int x, int y, int z) {
-  return (x << RGB_CUBE_X_SHIFT) + (y << RGB_CUBE_Y_SHIFT) + (z << RGB_CUBE_Z_SHIFT); 
-}
+PImage coordsData;
 
 void analyzeStartImage() {
+  resetRGBCube();
+  
+  coordsData = createImage(endImg.width(), endImg.height(), ARGB);
+  coordsDataSmall = new CustomImage(coordsData);
+
+  for(int i = 0; i < NUM_ANALYSIS_THREADS; ++i) {
+    thread("findBestFitThread" + i);
+  }
+}
+
+void resetRGBCube() {
   for(int i = 0; i < RGB_CUBE_TOTAL_SIZE; ++i) {
     RGB_cube.set(i, new ArrayList<Integer>());
     if(cacheAnalysisResults)
@@ -33,17 +52,17 @@ void analyzeStartImage() {
   
   for(int i = 0; i < startImg.length(); ++i) {
     color pixel = startImg.getPixel(i);
-    if(ignoreBlack && brightness(pixel) == 0) continue;
+    if(ignoreBlack && brightness(pixel) <= 1) continue;
     
     int pixelR = (pixel >> RED & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
         pixelG = (pixel >> GREEN & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
         pixelB = (pixel >> BLUE & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT;
-    RGB_cube.get(coordsToIndex(pixelR, pixelG, pixelB)).add(i);
+    RGB_cube.get(coordsToCubeIndex(pixelR, pixelG, pixelB)).add(i);
   }
+}
 
-  for(int i = 0; i < NUM_ANALYSIS_THREADS; ++i) {
-    thread("findBestFitThread" + i);
-  }
+int coordsToCubeIndex(int x, int y, int z) {
+  return (x << RGB_CUBE_X_SHIFT) + (y << RGB_CUBE_Y_SHIFT) + (z << RGB_CUBE_Z_SHIFT); 
 }
 
 void findBestFitThread0() { findBestFitThread(0); }
@@ -56,7 +75,7 @@ void findBestFitThread6() { findBestFitThread(6); }
 void findBestFitThread7() { findBestFitThread(7); }
 
 void findBestFitThread(int offset) {
-  for(int i = offset; i < endImg.length(); i += NUM_ANALYSIS_THREADS) {          
+  for(int i = offset; i < endImg.length(); i += NUM_ANALYSIS_THREADS) {
     findBestFit(i);
     ++analysisIndexes[offset];
   }
@@ -67,7 +86,7 @@ void findBestFitThread(int offset) {
 void findBestFit(int index) {
   color target = endImg.getPixel(index);
   if(ignoreBlack && brightness(target) == 0) {
-    newOrder[index] = -1;  
+    //newOrder[index] = -1;  
     return;
   }
   
@@ -75,44 +94,46 @@ void findBestFit(int index) {
       targetG = (target >> GREEN & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
       targetB = (target >> BLUE & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT;
 
-  int desiredIndex = coordsToIndex(targetR, targetG, targetB);
+  int desiredIndex = coordsToCubeIndex(targetR, targetG, targetB);
   int startShellSize = 1;
 
   if(cacheAnalysisResults) {
     ArrayList<Integer> results = RGB_cube_recordedResults.get(desiredIndex);
     if(results.size() > 0) {
       if(PERFECT_RGB_CUBE_ANALYSIS)
-        newOrder[index] = findBestFitFromList(target, results);
+        storeCoordsInImage(index, findBestFitFromList(target, results));
       else
-        newOrder[index] = results.get((int)random(results.size()));
+        storeCoordsInImage(index, results.get((int)random(results.size())));
       return;
     }
   }
   //else startShellSize = RGB_cube_recordedResults.get(desiredIndex).get(0);
   
   ArrayList<Integer> candidates = new ArrayList<Integer>();
-  candidates.addAll(RGB_cube.get(coordsToIndex(targetR, targetG, targetB)));
+  candidates.addAll(RGB_cube.get(coordsToCubeIndex(targetR, targetG, targetB)));
 
   for(int shellSize = startShellSize; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
     
     if(candidates.size() > 0) {
       if(PERFECT_RGB_CUBE_ANALYSIS)
-        newOrder[index] = findBestFitFromList(target, candidates);
+        //newOrder[index] = findBestFitFromList(target, candidates);
+        storeCoordsInImage(index, findBestFitFromList(target, candidates));
       else 
-        newOrder[index] = candidates.get((int)random(candidates.size()));
+        //newOrder[index] = candidates.get((int)random(candidates.size()));
+        storeCoordsInImage(index, candidates.get((int)random(candidates.size())));
       
       if(cacheAnalysisResults)
         RGB_cube_recordedResults.set(desiredIndex, candidates);
       //else RGB_cube_recordedResults.get(desiredIndex).set(0, shellSize);
       return;
     }
-    
+    /*
     if(switchToLegacyAnalysisOnSlowdown && shellSize >= SWITCH_TO_LEGACY_RGB_CUBE_SIZE) {
       findBestFit_legacy(index);
       pixelsLegacyAnalyzed.set(index, true);
       return; 
     }
-    
+    */
     int minX = targetR - shellSize,
         maxX = targetR + shellSize,
         minY = targetG - shellSize,
@@ -125,42 +146,42 @@ void findBestFit(int index) {
       for(int x = minX; x <= maxX; ++x)
          for(int y = minY; y <= maxY; ++y)
            if(testCubeBounds(x, y))
-             candidates.addAll(RGB_cube.get(coordsToIndex(x, y, minZ)));
+             candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, minZ)));
 
     // Back side
     if(testCubeBounds(maxZ))
       for(int x = minX; x <= maxX; ++x)
          for(int y = minY; y <= maxY; ++y)
            if(testCubeBounds(x, y))
-             candidates.addAll(RGB_cube.get(coordsToIndex(x, y, maxZ)));
+             candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, maxZ)));
 
     // Left side (minus front and back edges)
     if(testCubeBounds(minX))
       for(int y = minY; y <= maxY; ++y)
         for(int z = minZ + 1; z < maxZ; ++z)
           if(testCubeBounds(y, z))
-            candidates.addAll(RGB_cube.get(coordsToIndex(minX, y, z)));
+            candidates.addAll(RGB_cube.get(coordsToCubeIndex(minX, y, z)));
 
     // Right side (minus front and back edges)
     if(testCubeBounds(maxX))
       for(int y = minY; y <= maxY; ++y)
         for(int z = minZ + 1; z < maxZ; ++z)
           if(testCubeBounds(y, z))
-            candidates.addAll(RGB_cube.get(coordsToIndex(maxX, y, z)));
+            candidates.addAll(RGB_cube.get(coordsToCubeIndex(maxX, y, z)));
 
     // Bottom side (minus front and back edges, left and right edges)
     if(testCubeBounds(minY))
       for(int x = minX + 1; x < maxX; ++x)
         for(int z = minZ + 1; z < maxZ; ++z)
           if(testCubeBounds(x, z))
-            candidates.addAll(RGB_cube.get(coordsToIndex(x, minY, z)));
+            candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, minY, z)));
           
     // Top side (minus front and back edges, left and right edges)
     if(testCubeBounds(maxY))
       for(int x = minX + 1; x < maxX; ++x)
         for(int z = minZ + 1; z < maxZ; ++z)
           if(testCubeBounds(x, z))
-            candidates.addAll(RGB_cube.get(coordsToIndex(x, maxY, z)));
+            candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, maxY, z)));
   }
 }
 
@@ -194,4 +215,13 @@ int findBestFitFromList(color target, ArrayList<Integer> samples) {
     }
   }
   return bestFitIndex;
+}
+
+void storeCoordsInImage(int endIndex, int startIndex) {
+  // AAAAAAAA RRRRRRRR GGGGGGGG BBBBBBBB
+  // AAAAAAAA XXXXXXXX XXXXYYYY YYYYYYYY numbers up to 4096
+  coordsData.pixels[endIndex] = 
+    ((startIndex % startImg.width()) << 12) +
+    (startIndex / startImg.width()) +
+    (255 << 24);
 }
