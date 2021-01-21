@@ -24,7 +24,7 @@ void resetAnimator() {
   for(int i = 0; i < endImg.length(); ++i) {
     //startCoords.pixels[i] = color(random(255), random(255), random(255));
     //println(red(startCoords.pixels[i]) + ", " + green(startCoords.pixels[i]));
-    test.stroke(color(random(255), 0, 0));
+    test.stroke(startImg.getPixel(retrieveCoordsFromImage(i)));
     test.vertex(i % endImg.width(), i / endImg.width());
     /*
     //PShape temp = createShape(RECT, i % endImg.width(), i / endImg.width(), 1, 1);
@@ -46,7 +46,8 @@ void resetAnimator() {
 void animate(float frac) {
   background(0);
   
-  shader.set("frac", frac);
+  //shader.set("frac", frac);
+  shader.set("frac", 0.99f);
   shader(shader);  
   shape(test);
   //endImg.drawImageCentered();

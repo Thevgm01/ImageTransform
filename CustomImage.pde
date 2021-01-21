@@ -9,6 +9,8 @@ class CustomImage {
   public int length() { return img.pixels.length; }
   public color[] pixels() { return img.pixels; }
   public color getPixel(int index) { return img.pixels[index]; }
+  public color getPixel(int x, int y) { return img.pixels[y * img.width + x]; }
+  public color getPixel(int[] coords) { return img.pixels[coords[1] * img.width + coords[0]]; }
   //public PImage getImage() { return img; }
   public boolean isValid() { return img.width > 0 && img.height > 0; }
   

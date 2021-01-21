@@ -28,7 +28,18 @@ final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
 final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
 
+
+// We want to store the x and y coordinates of the best matching pixel inside of an image
+// We have 32 bits of color to work with
+// AAAAAAAA RRRRRRRR GGGGGGGG BBBBBBBB normal
+// AAAAAAAA XXXXXXXX XXXXYYYY YYYYYYYY 12 bits, numbers up to 4096
+// AAAAAAXX XXXXXXXX XXXYYYYY YYYYYYYY 13 bits, numbers up to 8192
+final int BITS_FOR_COORDS = 13;
+final int COLOR_BIT_MASK = (1 << BITS_FOR_COORDS) - 1;
+final int ALPHA_BIT_MASK = (1 << (32 - BITS_FOR_COORDS * 2)) - 1;
+
 PImage coordsData;
+
 
 void analyzeStartImage() {
   resetRGBCube();
@@ -216,11 +227,16 @@ int findBestFitFromList(color target, ArrayList<Integer> samples) {
   return bestFitIndex;
 }
 
-void storeCoordsInImage(int endIndex, int startIndex) {
-  // AAAAAAAA RRRRRRRR GGGGGGGG BBBBBBBB
-  // AAAAAAAA XXXXXXXX XXXXYYYY YYYYYYYY numbers up to 4096
+void storeCoordsInImage(int endIndex, int startIndex) {  
   coordsData.pixels[endIndex] = 
-    ((startIndex % startImg.width()) << 12) +
+    ((startIndex % startImg.width()) << BITS_FOR_COORDS) +
     (startIndex / startImg.width()) +
-    (255 << 24);
+    ((0xff & ALPHA_BIT_MASK) << (BITS_FOR_COORDS * 2));
+}
+
+int[] retrieveCoordsFromImage(int index) {
+  return new int[] {
+    (coordsData.pixels[index] >> BITS_FOR_COORDS) & COLOR_BIT_MASK,
+    coordsData.pixels[index] & COLOR_BIT_MASK
+  };
 }
