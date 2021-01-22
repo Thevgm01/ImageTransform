@@ -24,10 +24,10 @@ ArrayList<ArrayList<Integer>> RGB_cube;
 ArrayList<ArrayList<Integer>> RGB_cube_recordedResults;
 
 final boolean PERFECT_RGB_CUBE_ANALYSIS = false; // Makes gradients look better
+final int RGB_CUBE_MAX_SAMPLES = 1000;
 final boolean LEGACY_ANALYSIS = false;
 final int LEGACY_NUM_TO_CHECK = 2000;
 final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
-
 
 // We want to store the x and y coordinates of the best matching pixel inside of an image
 // We have 32 bits of color to work with
@@ -62,12 +62,18 @@ void resetRGBCube() {
   
   for(int i = 0; i < startImg.length(); ++i) {
     color pixel = startImg.getPixel(i);
-    if(ignoreBlack && brightness(pixel) <= 1) continue;
+    if(ignoreBlack && brightness(pixel) <= 1)
+      continue;
     
     int pixelR = (pixel >> RED & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
         pixelG = (pixel >> GREEN & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT,
         pixelB = (pixel >> BLUE & 0xff) >> RGB_CUBE_VALUE_BIT_SHIFT;
-    RGB_cube.get(coordsToCubeIndex(pixelR, pixelG, pixelB)).add(i);
+        
+    ArrayList<Integer> indexes = RGB_cube.get(coordsToCubeIndex(pixelR, pixelG, pixelB));
+    if(indexes.size() < RGB_CUBE_MAX_SAMPLES)
+      indexes.add(i);
+    else
+      indexes.set((int)random(indexes.size()), i);
   }
 }
 

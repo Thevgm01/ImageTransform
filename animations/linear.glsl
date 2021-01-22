@@ -7,28 +7,23 @@ attribute vec2 texCoord;
 
 uniform vec2 startResolution;
 uniform vec2 endResolution;
-uniform sampler2D textureA;
+uniform sampler2D tex;
 uniform float frac;
 
-varying vec4 vertTexCoord;
 varying vec4 vertColor;
-
+varying vec4 vertTexCoord;
 
 void main() {
-  vertTexCoord = texMatrix * vec4(position.xy, 1.0, 1.0);
+  vertTexCoord = texMatrix * vec4(texCoord, 1.0, 1.0);
 
-  //vec2 start = texture2D(startCoords, vec2(500, 500)).rg;  
-  vec3 start = vec3(texture2D(textureA, vertTexCoord.st));
-  //vec2 start = vec2(rand(position.xy), rand(position.xy + 100)) * 500;
-  //vec2 start = texture2D(textureA, vec2(500, 500)).rg;
-  //vec3 start = vec3(texture2D(startCoords, vertTexCoord.st * endResolution));  
-  //vec2 start = vec2(vertTexCoord.st);
-  //vec2 start = vec2(1000, 100);
-  //vec3 color = vec3(texture2D(textureA, vertTexCoord.st));
+  vec4 start = texture2D(tex, vertTexCoord.st) * 255;
+  //vec4 start = vec4(0);
   
-  vec2 curPos = mix(start.rg, position.xy, frac);
-  gl_Position = transform * vec4(curPos.xy, position.zw);
-  //vertTexCoord = texMatrix * vec4(start.rg, 1.0, 1.0);
-  
+  //vec2 curPos = mix(start.xy, position.xy, frac);
+  vec4 curPos = vec4(position.x + 10 * position.x, position.y + 10 * position.y, position.zw);
+
+  //gl_Position = transform * vec4(curPos.xy, position.zw);
+  gl_Position = transform * curPos;
+    
   vertColor = color;
 }

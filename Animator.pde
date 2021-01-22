@@ -17,37 +17,37 @@ void resetAnimator() {
   
   startCoords = createImage(endImg.width(), endImg.height(), RGB);
   
-  //test = createShape(GROUP);
-  test = createShape();
-  test.beginShape(POINTS);
-  test.strokeCap(PROJECT);
+  test = createShape(GROUP);
+  //test = createShape();
+  //test.beginShape(POINTS);
+  //test.strokeWeight(1);
+  //test.strokeCap(PROJECT);
   for(int i = 0; i < endImg.length(); ++i) {
-    //startCoords.pixels[i] = color(random(255), random(255), random(255));
-    //println(red(startCoords.pixels[i]) + ", " + green(startCoords.pixels[i]));
-    test.stroke(startImg.getPixel(retrieveCoordsFromImage(i)));
-    test.vertex(i % endImg.width(), i / endImg.width());
-    /*
-    //PShape temp = createShape(RECT, i % endImg.width(), i / endImg.width(), 1, 1);
-    PShape temp = createShape();
-    
-    temp.beginShape(POINTS);
-    temp.vertex(i % endImg.width(), i / endImg.width());
-    temp.endShape(CLOSE);
+    int x = i % endImg.width(),
+        y = i / endImg.width();
+    //test.stroke(startImg.getPixel(retrieveCoordsFromImage(i)));
+    //test.vertex(x, y, x, y);
 
-    test.addChild(temp);
-    */
+    //PShape temp = createShape(RECT, x, y, 1, 1);
+    //PShape temp = createShape();
+    
+    //temp.beginShape(POINTS);
+    //temp.vertex(x, y, x, y);
+    //temp.endShape();
+
+    //test.addChild(temp);
   }
   test.endShape();
 
   //shader.set("startCoords", startCoords);
-  shader.set("textureA", startCoords);
+  shader.set("tex", startCoords);
 }
 
 void animate(float frac) {
   background(0);
   
   //shader.set("frac", frac);
-  shader.set("frac", 0.99f);
+  shader.set("frac", frac);
   shader(shader);  
   shape(test);
   //endImg.drawImageCentered();

@@ -50,6 +50,7 @@ void showAllInfo(int cur, int max, String label) {
     if(ui_showEndImageCalculatedPixels) {
       coordsData.updatePixels();
       image(coordsData, -endImg.width(), endImg.height());
+      //image(coordsData, -endImg.width(), 0);
     }
     popMatrix();
     /*
@@ -85,7 +86,7 @@ void showAnalysisText(int cur, int max, String label) {
 
 void showProgress(int numAnalyzed) {  
   float frac = 0f;
-  if(curState == State.ANALYSIS) frac = (float)numAnalyzed / TOTAL_SIZE;
+  if(curState == State.ANALYSIS) frac = (float)numAnalyzed / endImg.length();
   else if(curState == State.ANIMATION) frac = 1f;
   else frac = 0f;
         
