@@ -7,7 +7,7 @@ null;
 
 final String IMAGES_LIST_FILE = 
 //null;
-"C:/Users/thevg/Pictures/Wallpapers/list.txt";
+"wallpapers.txt";
 
 int imagesListFileSize = 0;
 
