@@ -182,6 +182,7 @@ void draw() {
       break;
   }
   if(ui_showProgress) showProgress(numAnalyzed);
+  if(ui_showEndImage) showEndImage();
 }
 
 void resetAll() {

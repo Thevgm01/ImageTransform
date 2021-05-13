@@ -43,12 +43,14 @@ String getRandomImageNameFromFile(String file) {
 
     if(imagesListFileSize == 0)
       imagesListFileSize = Integer.parseInt(result.trim());
-
     int desiredLine = (int)random(0, imagesListFileSize);
+
+    String directoryPrefix = reader.readLine();
+
     for(int i = 0; i < desiredLine; ++i)
       reader.readLine(); 
 
-    return reader.readLine();
+    return directoryPrefix + reader.readLine();
 
   } catch(Exception e) { return null; }
 }

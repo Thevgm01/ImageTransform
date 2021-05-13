@@ -10,7 +10,7 @@ print("Collecting wallpapers in " + wallpaperDir)
 
 file = open(filepath,"w+")
 file.write("          \n") # Reserve space for writing the total number of wallpapers at the beginning
-file.write(sys.argv[1] + "\n") # Write the root path
+file.write(wallpaperDir + os.path.sep + "\n") # Write the root path
 
 count = 0
 for root, dirs, files in os.walk(wallpaperDir, followlinks=True):

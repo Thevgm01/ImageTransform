@@ -17,14 +17,14 @@ void resetAnimator() {
   
   startCoords = createImage(endImg.width(), endImg.height(), RGB);
   
-  test = createShape(GROUP);
+  //test = createShape(GROUP);
   //test = createShape();
   //test.beginShape(POINTS);
   //test.strokeWeight(1);
   //test.strokeCap(PROJECT);
-  for(int i = 0; i < endImg.length(); ++i) {
-    int x = i % endImg.width(),
-        y = i / endImg.width();
+  //for(int i = 0; i < endImg.length(); ++i) {
+  //  int x = i % endImg.width(),
+  //      y = i / endImg.width();
     //test.stroke(startImg.getPixel(retrieveCoordsFromImage(i)));
     //test.vertex(x, y, x, y);
 
@@ -36,8 +36,8 @@ void resetAnimator() {
     //temp.endShape();
 
     //test.addChild(temp);
-  }
-  test.endShape();
+  //}
+  //test.endShape();
 
   //shader.set("startCoords", startCoords);
   shader.set("tex", startCoords);
@@ -49,7 +49,7 @@ void animate(float frac) {
   //shader.set("frac", frac);
   shader.set("frac", frac);
   shader(shader);  
-  shape(test);
+  //shape(test);
   //endImg.drawImageCentered();
   //image(startCoords, 0, 0);
   

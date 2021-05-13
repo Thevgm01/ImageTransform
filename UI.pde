@@ -41,28 +41,6 @@ void showAllInfo(int cur, int max, String label) {
     //totalAnalyzedPerFrame.add(cur);
     //drawAnalysisGraph(totalAnalyzedPerFrame, -1);
   }
-  if(ui_showEndImage) {
-    tint(255, 220);
-    pushMatrix();
-    translate(width, 0);
-    scale(400f/width);
-    endImg.draw(-endImg.width(), 0);
-    if(ui_showEndImageCalculatedPixels) {
-      coordsData.updatePixels();
-      image(coordsData, -endImg.width(), endImg.height());
-      //image(coordsData, -endImg.width(), 0);
-    }
-    popMatrix();
-    /*
-    if(ui_showEndImageCalculatedPixels) {
-      noStroke();
-      fill(fillColor);
-      float lastCurHeight = endImgSmall.height * (float) lastCur / max;
-      float curHeight = endImgSmall.height * (float) (cur - lastCur) / max;
-      //if(curHeight < 1) curHeight = 1;
-      rect(width - endImgSmall.width, ceil(lastCurHeight), endImgSmall.width, ceil(curHeight));
-    }*/
-  }
   
   lastCur = cur;
 }
@@ -143,6 +121,20 @@ void showProgressBorder(float frac) {
   if(perimeter > 0) {
     line(HALF_WIDTH - perimeter, 0, HALF_WIDTH + perimeter, 0);
   }
+}
+
+void showEndImage() {
+  tint(255, 220);
+  pushMatrix();
+  translate(width, 0);
+  scale(400f/width);
+  endImg.draw(-endImg.width(), 0);
+  if(ui_showEndImageCalculatedPixels) {
+    coordsData.updatePixels();
+    image(coordsData, -endImg.width(), endImg.height());
+    //image(coordsData, -endImg.width(), 0);
+  }
+  popMatrix();
 }
 
 void drawAnalysisGraph(ArrayList<Integer> values, int maxIndex) {
