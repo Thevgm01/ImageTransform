@@ -1,8 +1,8 @@
 final int RED = 16, GREEN = 8, BLUE = 0;
 
 final int RGB_CUBE_VALUE_BIT_SHIFT = 2; // The number of times to halve each RGB value (for performance reasons)
-final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 256, currently 6
-final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT; // 64
+final int RGB_CUBE_DIMENSIONS_BIT_SHIFT = 8 - RGB_CUBE_VALUE_BIT_SHIFT; // Max 8, currently 6
+final int RGB_CUBE_DIMENSIONS = 1 << RGB_CUBE_DIMENSIONS_BIT_SHIFT; // 2^6 = 64
 
 final int RGB_CUBE_X_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 0;
 final int RGB_CUBE_Y_SHIFT = RGB_CUBE_DIMENSIONS_BIT_SHIFT * 1;
@@ -31,12 +31,14 @@ final int SWITCH_TO_LEGACY_RGB_CUBE_SIZE = (int)(RGB_CUBE_DIMENSIONS * 0.33f);
 
 // We want to store the x and y coordinates of the best matching pixel inside of an image
 // We have 32 bits of color to work with
+// Want to keep some of the alpha bits to make displaying the coordinate image easier (for debugging)
 // AAAAAAAA RRRRRRRR GGGGGGGG BBBBBBBB normal
-// AAAAAAAA XXXXXXXX XXXXYYYY YYYYYYYY 12 bits, numbers up to 4096
-// AAAAAAXX XXXXXXXX XXXYYYYY YYYYYYYY 13 bits, numbers up to 8192
+// AAAAAAAA XXXXXXXX XXXXYYYY YYYYYYYY 12 bits per coordinate, numbers up to 4096
+// AAAAAAXX XXXXXXXX XXXYYYYY YYYYYYYY 13 bits per coordinate, numbers up to 8192
+// Should work for monitors with up to 8K resolution
 final int BITS_FOR_COORDS = 13;
 final int COLOR_BIT_MASK = (1 << BITS_FOR_COORDS) - 1;
-final int ALPHA_BIT_MASK = (1 << (32 - BITS_FOR_COORDS * 2)) - 1;
+final int ALPHA_BITS = 0xff << (BITS_FOR_COORDS * 2);
 
 PImage coordsData;
 
@@ -73,7 +75,7 @@ void resetRGBCube() {
     if(indexes.size() < RGB_CUBE_MAX_SAMPLES)
       indexes.add(i);
     else
-      indexes.set((int)random(indexes.size()), i);
+      indexes.set((int)random(RGB_CUBE_MAX_SAMPLES), i);
   }
 }
 
@@ -233,11 +235,9 @@ int findBestFitFromList(color target, ArrayList<Integer> samples) {
   return bestFitIndex;
 }
 
-void storeCoordsInImage(int endIndex, int startIndex) {  
-  coordsData.pixels[endIndex] = 
-    ((startIndex % startImg.width()) << BITS_FOR_COORDS) +
-    (startIndex / startImg.width()) +
-    ((0xff & ALPHA_BIT_MASK) << (BITS_FOR_COORDS * 2));
+void storeCoordsInImage(int endIndex, int startIndex) {
+  int x = startIndex % startImg.width(), y = startIndex / startImg.width();
+  coordsData.pixels[endIndex] = ALPHA_BITS + (x << BITS_FOR_COORDS) + y;
 }
 
 int[] retrieveCoordsFromImage(int index) {
