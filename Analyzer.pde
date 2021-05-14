@@ -75,7 +75,7 @@ void resetRGBCube() {
     if(indexes.size() < RGB_CUBE_MAX_SAMPLES)
       indexes.add(i);
     else
-      indexes.set((int)random(RGB_CUBE_MAX_SAMPLES), i);
+      indexes.set(randy.nextInt(RGB_CUBE_MAX_SAMPLES), i);
   }
 }
 
@@ -121,7 +121,7 @@ void findBestFit(int index) {
       if(PERFECT_RGB_CUBE_ANALYSIS)
         storeCoordsInImage(index, findBestFitFromList(target, results));
       else
-        storeCoordsInImage(index, results.get((int)random(results.size())));
+        storeCoordsInImage(index, results.get(randy.nextInt(results.size())));
       return;
     }
   }
@@ -137,8 +137,8 @@ void findBestFit(int index) {
         //newOrder[index] = findBestFitFromList(target, candidates);
         storeCoordsInImage(index, findBestFitFromList(target, candidates));
       else 
-        //newOrder[index] = candidates.get((int)random(candidates.size()));
-        storeCoordsInImage(index, candidates.get((int)random(candidates.size())));
+        //newOrder[index] = candidates.get(randy.nextInt(candidates.size()));
+        storeCoordsInImage(index, candidates.get(randy.nextInt(candidates.size())));
       
       if(cacheAnalysisResults)
         RGB_cube_recordedResults.set(desiredIndex, candidates);

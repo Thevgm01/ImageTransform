@@ -27,11 +27,11 @@ String getRandomImageNameFromDirectory(String directory) {
   File[] files = new File(directory).listFiles();
   File randomFile;
   do {
-    randomFile = files[(int)random(0, files.length)];
+    randomFile = files[randy.nextInt(files.length)];
   } while(!(randomFile.getName().endsWith(".png") || 
             randomFile.getName().endsWith(".jpg") || 
             randomFile.getName().endsWith(".jpeg")));
-  return files[(int)random(0, files.length)].getAbsolutePath();
+  return files[randy.nextInt(files.length)].getAbsolutePath();
 }
 
 String getRandomImageNameFromFile(String file) {
@@ -43,7 +43,7 @@ String getRandomImageNameFromFile(String file) {
 
     if(imagesListFileSize == 0)
       imagesListFileSize = Integer.parseInt(result.trim());
-    int desiredLine = (int)random(0, imagesListFileSize);
+    int desiredLine = randy.nextInt(imagesListFileSize);
 
     String directoryPrefix = reader.readLine();
 

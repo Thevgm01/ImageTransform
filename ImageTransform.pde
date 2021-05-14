@@ -15,6 +15,9 @@ final int TOTAL_ANIMATION_FRAMES = DESIRED_FRAMERATE * 4;//4;
 final int TOTAL_DELAY_FRAMES = DESIRED_FRAMERATE / 2;
 final int TOTAL_FADE_FRAMES = DESIRED_FRAMERATE * 2;//3;
 
+final int NUM_RANDOM_NUMBERS = 3177;
+final RandomHelper randy = new RandomHelper(NUM_RANDOM_NUMBERS);
+
 // CONFIGURATION //
 final boolean ignoreBlack = true;
 final boolean preAnimate = false; //Dramatically slows loading speed, but required for maintaining high framerate at large resolutions
@@ -234,7 +237,7 @@ void randomizeImage(color[] start, color[] end, int[] order) {
     order[i] = i;
   }
   for(int i = start.length - 1; i > 0; i--) {
-    int index = (int)random(0, i+1);
+    int index = randy.nextInt(i+1);
 
     color c = end[index];
     end[index] = end[i];
