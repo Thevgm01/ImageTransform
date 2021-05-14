@@ -7,7 +7,7 @@ PImage startCoords;
 PShape test;
 
 void resetAnimator() {
-  String randomShader = SHADERS[randy.nextInt(SHADERS.length)];
+  String randomShader = SHADERS[(int)random(SHADERS.length)];
   
   shader = loadShader(SHADER_FOLDER + "frag.glsl", SHADER_FOLDER + randomShader + ".glsl");
   //shader.set("startResolution", float(startImg.width()), float(startImg.height()));
