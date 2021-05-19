@@ -152,49 +152,55 @@ void findBestFit(int index) {
       return; 
     }
     */
-    int minX = targetR - shellSize,
-        maxX = targetR + shellSize,
-        minY = targetG - shellSize,
-        maxY = targetG + shellSize,
-        minZ = targetB - shellSize,
-        maxZ = targetB + shellSize;
+    final int
+      MIN_X = 0, MAX_X = 1,
+      MIN_Y = 2, MAX_Y = 3,
+      MIN_Z = 4, MAX_Z = 5;
+              
+    int[] borders = {
+      targetR - shellSize,
+      targetR + shellSize,
+      targetG - shellSize,
+      targetG + shellSize,
+      targetB - shellSize,
+      targetB + shellSize };
         
-    if(minX < 0) minX = 0;
-    if(maxX >= RGB_CUBE_DIMENSIONS) maxX = RGB_CUBE_DIMENSIONS - 1;
-    if(minY < 0) minY = 0;
-    if(maxY >= RGB_CUBE_DIMENSIONS) maxY = RGB_CUBE_DIMENSIONS - 1;
-    if(minZ < 0) minZ = 0;
-    if(maxZ >= RGB_CUBE_DIMENSIONS) maxZ = RGB_CUBE_DIMENSIONS - 1;
+    if(borders[MIN_X] < 0)                    borders[MIN_X] = 0;
+    if(borders[MAX_X] >= RGB_CUBE_DIMENSIONS) borders[MAX_X] = RGB_CUBE_DIMENSIONS - 1;
+    if(borders[MIN_Y] < 0)                    borders[MIN_Y] = 0;
+    if(borders[MAX_Y] >= RGB_CUBE_DIMENSIONS) borders[MAX_Y] = RGB_CUBE_DIMENSIONS - 1;
+    if(borders[MIN_Z] < 0)                    borders[MIN_Z] = 0;
+    if(borders[MAX_Z] >= RGB_CUBE_DIMENSIONS) borders[MAX_Z] = RGB_CUBE_DIMENSIONS - 1;
     
     // Back side
-    for(int x = minX; x <= maxX; ++x)
-      for(int y = minY; y <= maxY; ++y)
-        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, y, minZ)));
+    for(int x = borders[MIN_X]; x <= borders[MAX_X]; ++x)
+      for(int y = borders[MIN_Y]; y <= borders[MAX_Y]; ++y)
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, y, borders[MIN_Z])));
     
     // Front side
-    for(int x = minX; x <= maxX; ++x)
-      for(int y = minY; y <= maxY; ++y)
-        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, y, maxZ)));
+    for(int x = borders[MIN_X]; x <= borders[MAX_X]; ++x)
+      for(int y = borders[MIN_Y]; y <= borders[MAX_Y]; ++y)
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, y, borders[MAX_Z])));
 
     // Left side (minus front and back edges)
-    for(int y = minY; y <= maxY; ++y)
-      for(int z = minZ + 1; z < maxZ; ++z)
-        addAll(candidates, RGB_cube.get(coordsToCubeIndex(minX, y, z)));
+    for(int y = borders[MIN_Y]; y <= borders[MAX_Y]; ++y)
+      for(int z = borders[MIN_Z] + 1; z < borders[MAX_Z]; ++z)
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(borders[MIN_X], y, z)));
 
     // Right side (minus front and back edges)
-    for(int y = minY; y <= maxY; ++y)
-      for(int z = minZ + 1; z < maxZ; ++z)
-        addAll(candidates, RGB_cube.get(coordsToCubeIndex(maxX, y, z)));
+    for(int y = borders[MIN_Y]; y <= borders[MAX_Y]; ++y)
+      for(int z = borders[MIN_Z] + 1; z < borders[MAX_Z]; ++z)
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(borders[MAX_X], y, z)));
 
     // Bottom side (minus front and back edges, left and right edges)
-    for(int x = minX + 1; x < maxX; ++x)
-      for(int z = minZ + 1; z < maxZ; ++z)
-        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, minY, z)));
+    for(int x = borders[MIN_X] + 1; x < borders[MAX_X]; ++x)
+      for(int z = borders[MIN_Z] + 1; z < borders[MAX_Z]; ++z)
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, borders[MIN_Y], z)));
           
     // Top side (minus front and back edges, left and right edges)
-    for(int x = minX + 1; x < maxX; ++x)
-      for(int z = minZ + 1; z < maxZ; ++z)
-        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, maxY, z)));
+    for(int x = borders[MIN_X] + 1; x < borders[MAX_X]; ++x)
+      for(int z = borders[MIN_Z] + 1; z < borders[MAX_Z]; ++z)
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, borders[MAX_Y], z)));
   }
 }
 
