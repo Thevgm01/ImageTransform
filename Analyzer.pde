@@ -158,59 +158,44 @@ void findBestFit(int index) {
         maxY = targetG + shellSize,
         minZ = targetB - shellSize,
         maxZ = targetB + shellSize;
+        
+    if(minX < 0) minX = 0;
+    if(maxX >= RGB_CUBE_DIMENSIONS) maxX = RGB_CUBE_DIMENSIONS - 1;
+    if(minY < 0) minY = 0;
+    if(maxY >= RGB_CUBE_DIMENSIONS) maxY = RGB_CUBE_DIMENSIONS - 1;
+    if(minZ < 0) minZ = 0;
+    if(maxZ >= RGB_CUBE_DIMENSIONS) maxZ = RGB_CUBE_DIMENSIONS - 1;
     
     // Back side
-    if(testCubeBounds(minZ))
-      for(int x = minX; x <= maxX; ++x)
-        if(testCubeBounds(x))
-          for(int y = minY; y <= maxY; ++y)
-            if(testCubeBounds(y))
-              candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, minZ)));
+    for(int x = minX; x <= maxX; ++x)
+      for(int y = minY; y <= maxY; ++y)
+        candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, minZ)));
     
     // Front side
-    if(testCubeBounds(maxZ))
-      for(int x = minX; x <= maxX; ++x)
-        if(testCubeBounds(x))
-          for(int y = minY; y <= maxY; ++y)
-            if(testCubeBounds(y))
-              candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, maxZ)));
+    for(int x = minX; x <= maxX; ++x)
+      for(int y = minY; y <= maxY; ++y)
+        candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, maxZ)));
 
     // Left side (minus front and back edges)
-    if(testCubeBounds(minX))
-      for(int y = minY; y <= maxY; ++y)
-        if(testCubeBounds(y))
-          for(int z = minZ + 1; z < maxZ; ++z)
-            if(testCubeBounds(z))
-              candidates.addAll(RGB_cube.get(coordsToCubeIndex(minX, y, z)));
+    for(int y = minY; y <= maxY; ++y)
+      for(int z = minZ + 1; z < maxZ; ++z)
+        candidates.addAll(RGB_cube.get(coordsToCubeIndex(minX, y, z)));
 
     // Right side (minus front and back edges)
-    if(testCubeBounds(maxX))
-      for(int y = minY; y <= maxY; ++y)
-        if(testCubeBounds(y))
-          for(int z = minZ + 1; z < maxZ; ++z)
-            if(testCubeBounds(z))
-              candidates.addAll(RGB_cube.get(coordsToCubeIndex(maxX, y, z)));
+    for(int y = minY; y <= maxY; ++y)
+      for(int z = minZ + 1; z < maxZ; ++z)
+        candidates.addAll(RGB_cube.get(coordsToCubeIndex(maxX, y, z)));
 
     // Bottom side (minus front and back edges, left and right edges)
-    if(testCubeBounds(minY))
-      for(int x = minX + 1; x < maxX; ++x)
-        if(testCubeBounds(x))
-          for(int z = minZ + 1; z < maxZ; ++z)
-            if(testCubeBounds(z))
-              candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, minY, z)));
+    for(int x = minX + 1; x < maxX; ++x)
+      for(int z = minZ + 1; z < maxZ; ++z)
+        candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, minY, z)));
           
     // Top side (minus front and back edges, left and right edges)
-    if(testCubeBounds(maxY))
-      for(int x = minX + 1; x < maxX; ++x)
-        if(testCubeBounds(x))
-          for(int z = minZ + 1; z < maxZ; ++z)
-            if(testCubeBounds(z))
-              candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, maxY, z)));
+    for(int x = minX + 1; x < maxX; ++x)
+      for(int z = minZ + 1; z < maxZ; ++z)
+        candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, maxY, z)));
   }
-}
-
-boolean testCubeBounds(int a) {
-  return a >= 0 && a < RGB_CUBE_DIMENSIONS;
 }
 
 int findBestFitFromList(color target, ArrayList<Integer> samples) {
