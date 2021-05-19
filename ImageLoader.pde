@@ -56,8 +56,9 @@ String getRandomImageNameFromFile(String file) {
 }
 
 void loadNextCustomImage() {
+  String exclude = endImg != null ? endImg.getName() : "";
   do {
-    String nextImgName = getRandomImageName("");
+    String nextImgName = getRandomImageName(exclude);
     nextImg = new CustomImage(nextImgName);
   } while(!nextImg.isValid());
 }

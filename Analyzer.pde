@@ -159,14 +159,14 @@ void findBestFit(int index) {
         minZ = targetB - shellSize,
         maxZ = targetB + shellSize;
     
-    // Front side
+    // Back side
     if(testCubeBounds(minZ))
       for(int x = minX; x <= maxX; ++x)
          for(int y = minY; y <= maxY; ++y)
            if(testCubeBounds(x, y))
              candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, minZ)));
-
-    // Back side
+    
+    // Front side
     if(testCubeBounds(maxZ))
       for(int x = minX; x <= maxX; ++x)
          for(int y = minY; y <= maxY; ++y)

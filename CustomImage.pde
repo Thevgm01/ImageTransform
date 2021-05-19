@@ -4,6 +4,7 @@ class CustomImage {
   private int imgx;
   private int imgy;
   
+  public String getName() { return name; }
   public int width() { return img.width; }
   public int height() { return img.height; }
   public int length() { return img.pixels.length; }
@@ -46,7 +47,7 @@ class CustomImage {
     imgy = height/2 - img.height/2;
   }
   
-  public void drawImageCentered() {
+  public void drawCentered() {
     image(img, imgx, imgy);
   }
   

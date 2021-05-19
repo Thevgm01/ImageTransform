@@ -125,7 +125,7 @@ void draw() {
   switch(curState) {
     case ANALYSIS: // Determine where pixels in the start image should end up
       boolean stillAnalyzing = numAnalyzed < endImg.length();
-      startImg.drawImageCentered();
+      startImg.drawCentered();
       moveProgressBar(progressSlideSpeed);
       showAllInfo(numAnalyzed, endImg.length(), "Pixels analyzed");
       if(!stillAnalyzing) {
