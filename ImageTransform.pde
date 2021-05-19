@@ -136,7 +136,8 @@ void draw() {
         }
         thread("loadNextCustomImage");
         resetAnimator();
-        curState = State.ANIMATION;
+        //curState = State.ANIMATION;
+        curState = State.RESET;
       } break;
     case ANIMATION: // Actively animate the transition
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
