@@ -128,7 +128,7 @@ void findBestFit(int index) {
   //else startShellSize = RGB_cube_recordedResults.get(desiredIndex).get(0);
   
   ArrayList<Integer> candidates = new ArrayList<Integer>();
-  candidates.addAll(RGB_cube.get(coordsToCubeIndex(targetR, targetG, targetB)));
+  addAll(candidates, RGB_cube.get(coordsToCubeIndex(targetR, targetG, targetB)));
 
   for(int shellSize = startShellSize; shellSize < RGB_CUBE_DIMENSIONS; shellSize++) {
     
@@ -169,32 +169,38 @@ void findBestFit(int index) {
     // Back side
     for(int x = minX; x <= maxX; ++x)
       for(int y = minY; y <= maxY; ++y)
-        candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, minZ)));
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, y, minZ)));
     
     // Front side
     for(int x = minX; x <= maxX; ++x)
       for(int y = minY; y <= maxY; ++y)
-        candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, y, maxZ)));
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, y, maxZ)));
 
     // Left side (minus front and back edges)
     for(int y = minY; y <= maxY; ++y)
       for(int z = minZ + 1; z < maxZ; ++z)
-        candidates.addAll(RGB_cube.get(coordsToCubeIndex(minX, y, z)));
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(minX, y, z)));
 
     // Right side (minus front and back edges)
     for(int y = minY; y <= maxY; ++y)
       for(int z = minZ + 1; z < maxZ; ++z)
-        candidates.addAll(RGB_cube.get(coordsToCubeIndex(maxX, y, z)));
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(maxX, y, z)));
 
     // Bottom side (minus front and back edges, left and right edges)
     for(int x = minX + 1; x < maxX; ++x)
       for(int z = minZ + 1; z < maxZ; ++z)
-        candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, minY, z)));
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, minY, z)));
           
     // Top side (minus front and back edges, left and right edges)
     for(int x = minX + 1; x < maxX; ++x)
       for(int z = minZ + 1; z < maxZ; ++z)
-        candidates.addAll(RGB_cube.get(coordsToCubeIndex(x, maxY, z)));
+        addAll(candidates, RGB_cube.get(coordsToCubeIndex(x, maxY, z)));
+  }
+}
+
+void addAll(ArrayList<Integer> dest, ArrayList<Integer> source) {
+  for(int i : source) {
+    dest.add(i);
   }
 }
 
