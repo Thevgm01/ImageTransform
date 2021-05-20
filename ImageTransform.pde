@@ -44,13 +44,19 @@ int[] backgroundIndexes;
 int[] animationIndexes;
 BitSet pixelsLegacyAnalyzed;
 
+long analysisStartTime;
+long analysisTime;
+long averageAnalysisTime = 0;
+int numAnalysisSamples = 0;
+
 private enum State {
+  RESET,
   ANALYSIS,
   ANIMATION,
   PAUSE1,
   FADE,
   PAUSE2,
-  RESET
+  WAIT_FOR_IMAGE
 }
 //final int NUM_STATES = State.values().length;
 State curState;
@@ -93,7 +99,7 @@ void setup() {
   loadNextCustomImage();
   //endImg = nextImg;
 
-  resetAll();
+  curState = State.RESET;
 }
 
 void mouseClicked() {
@@ -123,12 +129,23 @@ void draw() {
   background(0);
   
   switch(curState) {
+    
+    case RESET:
+      resetAll();
+      curState = State.ANALYSIS;
+      analysisStartTime = System.nanoTime();
+      break;
+      
     case ANALYSIS: // Determine where pixels in the start image should end up
       boolean stillAnalyzing = numAnalyzed < endImg.length();
       startImg.drawCentered();
       moveProgressBar(progressSlideSpeed);
       showAllInfo(numAnalyzed, endImg.length(), "Pixels analyzed");
       if(!stillAnalyzing) {
+        analysisTime = System.nanoTime() - analysisStartTime;
+        ++numAnalysisSamples;
+        averageAnalysisTime += (analysisTime - averageAnalysisTime) / numAnalysisSamples;
+        println("Analysis of " + numAnalysisSamples + " images took " + averageAnalysisTime / 1000000f + " ms on average");
         resetAverage();
         if(switchToLegacyAnalysisOnSlowdown) {
           if(!pixelsLegacyAnalyzed.isEmpty())
@@ -139,6 +156,7 @@ void draw() {
         //curState = State.ANIMATION;
         curState = State.RESET;
       } break;
+      
     case ANIMATION: // Actively animate the transition
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
         float frac = (float)curFrame / TOTAL_ANIMATION_FRAMES;
@@ -150,6 +168,7 @@ void draw() {
         curFrame = 0;
         curState = State.PAUSE1;
       } break;
+      
     case PAUSE1: // Pause for a moment to show the assembled image
       if(curFrame < TOTAL_DELAY_FRAMES) {
         if(!frameStepping) ++curFrame;
@@ -158,6 +177,7 @@ void draw() {
         curFrame = 0;
         curState = State.FADE;
       } break;
+      
     case FADE: // Fade gently between the assembled image and the true final image
       if(curFrame < TOTAL_FADE_FRAMES) {
         if(!frameStepping) ++curFrame;
@@ -166,22 +186,23 @@ void draw() {
         curFrame = 0;
         curState = State.PAUSE2;
       } break;
+      
     case PAUSE2: // Pause for a moment on the final image, then restart the cycle
       //background(endImg);
       if(curFrame < TOTAL_DELAY_FRAMES) {
         moveProgressBar(progressSlideSpeed);
         if(!frameStepping) ++curFrame;
       } else {
-        curState = State.RESET;
+        curState = State.WAIT_FOR_IMAGE;
       } break;
-    case RESET:
-      if(!nextImageLoaded){
-        //println("Next image not yet loaded!");
-        break;
+      
+    case WAIT_FOR_IMAGE:
+      if(nextImageLoaded){
+        curState = State.RESET;
       }
-      resetAll();
       break;
   }
+  
   if(ui_showProgress) showProgress(numAnalyzed);
   if(ui_showEndImage) showEndImage();
 }
@@ -206,7 +227,6 @@ void resetAll() {
   analyzeStartImage();
    
   curFrame = 0;
-  curState = State.ANALYSIS;
   
   resetAverage();
   
