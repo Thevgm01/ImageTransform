@@ -9,6 +9,8 @@ final String IMAGES_LIST_FILE =
 //null;
 "wallpapers.txt";
 
+boolean nextImageLoaded = false;
+
 int imagesListFileSize = 0;
 
 String getRandomImageName(String exclude) {
@@ -56,9 +58,11 @@ String getRandomImageNameFromFile(String file) {
 }
 
 void loadNextCustomImage() {
+  nextImageLoaded = false;
   String exclude = endImg != null ? endImg.getName() : "";
   do {
     String nextImgName = getRandomImageName(exclude);
     nextImg = new CustomImage(nextImgName);
   } while(!nextImg.isValid());
+  nextImageLoaded = true;
 }

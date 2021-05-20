@@ -175,7 +175,7 @@ void draw() {
         curState = State.RESET;
       } break;
     case RESET:
-      if(nextImg == null){
+      if(!nextImageLoaded){
         //println("Next image not yet loaded!");
         break;
       }
