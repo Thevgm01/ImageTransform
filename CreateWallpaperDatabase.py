@@ -2,8 +2,9 @@ import os
 import sys
 
 filename = "wallpapers.txt"
-filepath = os.path.join(sys.argv[1], filename)
-wallpaperDir = sys.argv[2]
+filedir = os.path.dirname(sys.argv[0])
+filepath = os.path.join(filedir, filename)
+wallpaperDir = sys.argv[1]
 wallpaperDirLen = len(wallpaperDir) + 1
 
 print("Collecting wallpapers in " + wallpaperDir)

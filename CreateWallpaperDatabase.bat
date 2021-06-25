@@ -1,2 +1,2 @@
-python %~dp0\CreateWallpaperDatabase.py %~dp0 %*
+python ^"%~dp0CreateWallpaperDatabase.py^" %*
 pause
