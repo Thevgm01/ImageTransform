@@ -145,7 +145,8 @@ void draw() {
         analysisTime = System.nanoTime() - analysisStartTime;
         ++numAnalysisSamples;
         averageAnalysisTime += (analysisTime - averageAnalysisTime) / numAnalysisSamples;
-        println("Analysis of " + numAnalysisSamples + " images took " + averageAnalysisTime / 1000000f + " ms on average");
+        println("Analysis took " + analysisTime / 1000000f + " ms");
+        println("Average analysis of " + numAnalysisSamples + " images is " + averageAnalysisTime / 1000000f + " ms");
         resetAverage();
         if(switchToLegacyAnalysisOnSlowdown) {
           if(!pixelsLegacyAnalyzed.isEmpty())
