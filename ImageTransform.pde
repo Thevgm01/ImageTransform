@@ -5,6 +5,7 @@ final boolean FULLSCREEN = false;
       int //WIDTH = 1920, HEIGHT = 1080;
           WIDTH = 1600, HEIGHT = 900;
           //WIDTH = 800, HEIGHT = 450;
+final float WIDTH_BY_HEIGHT = (float) WIDTH / HEIGHT;
 final int HALF_WIDTH = WIDTH / 2, HALF_HEIGHT = HEIGHT / 2;
 final int TOTAL_SIZE = WIDTH * HEIGHT;
 final int DESIRED_FRAMERATE = 60;

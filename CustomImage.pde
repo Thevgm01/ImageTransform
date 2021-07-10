@@ -40,9 +40,12 @@ class CustomImage {
   public void resizeImage(int w, int h) {
     if(!isValid()) return;
     
-    img.resize(w, 0); 
-    if(img.height > h) img.resize(0, h);
-    
+    float ratio = (float) img.width / img.height;
+    if (ratio >= WIDTH_BY_HEIGHT) // Image is longer than screen ratio
+      img.resize(w, 0);
+    else // Image is taller than screen ratio
+      img.resize(0, h);
+      
     imgx = width/2 - img.width/2;
     imgy = height/2 - img.height/2;
   }
