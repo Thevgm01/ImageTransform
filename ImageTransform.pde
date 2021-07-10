@@ -155,7 +155,7 @@ void draw() {
         thread("loadNextCustomImage");
         resetAnimator();
         //curState = State.ANIMATION;
-        curState = State.RESET;
+        curState = State.WAIT_FOR_IMAGE;
       } break;
       
     case ANIMATION: // Actively animate the transition
