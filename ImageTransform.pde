@@ -1,5 +1,7 @@
 import java.util.BitSet;
 
+import com.jogamp.opengl.*;
+
 // INITIALIZATION //
 final boolean FULLSCREEN = false;
       int //WIDTH = 1920, HEIGHT = 1080;
