@@ -1,57 +1,67 @@
-final String SHADER_FOLDER = "animations/";
-final String[] SHADERS = {"linear"};
-
-PShader shader;
-PImage startCoords;
-
-PShape test;
-
-void resetAnimator() {
-  String randomShader = SHADERS[(int)random(SHADERS.length)];
+class Animator {
+  GL4 gl;
   
-  shader = loadShader(SHADER_FOLDER + "frag.glsl", SHADER_FOLDER + randomShader + ".glsl");
-  //shader.set("startResolution", float(startImg.width()), float(startImg.height()));
-  //shader.set("endResolution", float(endImg.width()), float(endImg.height()));
-  //shader.set("newOrder", newOrder);
-  //shader.set("newOrder", new int[1920 * 1080]);
+  FloatList particleAttribList = new FloatList();
+  float[] particlesBuffer;
+  float[] particlesColorBuffuer;
+  FloatBuffer fbParticles;
+  FloatBuffer fbParticleColors;
   
-  startCoords = createImage(endImg.width(), endImg.height(), RGB);
-  
-  //test = createShape(GROUP);
-  //test = createShape();
-  //test.beginShape(POINTS);
-  //test.strokeWeight(1);
-  //test.strokeCap(PROJECT);
-  //for(int i = 0; i < endImg.length(); ++i) {
-  //  int x = i % endImg.width(),
-  //      y = i / endImg.width();
-    //test.stroke(startImg.getPixel(retrieveCoordsFromImage(i)));
-    //test.vertex(x, y, x, y);
+  int numParticles;
+  int x, y;
 
-    //PShape temp = createShape(RECT, x, y, 1, 1);
-    //PShape temp = createShape();
+  ShaderVertFrag shader;
+  ShaderCompute compute;
+
+  Animator(GL4 gl) {
+    this.gl = gl;    
+    shader = new ShaderVertFrag(gl, "shaders/vert.glsl", "shaders/frag.glsl");
+    compute = new ShaderCompute(gl, "shaders/animations/linear.glsl");
+  }
+  
+  void init(CustomImage img) {
+    numParticles = img.length();
     
-    //temp.beginShape(POINTS);
-    //temp.vertex(x, y, x, y);
-    //temp.endShape();
+    x = ceil(img.length() / 1024f);
+    //x = ceil(img.width() / gl.GL_WORK_GROUP_SIZE);
+    //y = img.height();
+    y = 1;
+    
+    particlesBuffer = new float[numParticles * 2];
+    for (int i = 0; i < numParticles; ++i) {
+      particlesBuffer[i * 2 + 0] = random(-1, 1); // pos X
+      particlesBuffer[i * 2 + 1] = random(-1, 1); // pos Y
+    }
 
-    //test.addChild(temp);
-  //}
-  //test.endShape();
+    fbParticles = Buffers.newDirectFloatBuffer(particlesBuffer);
+        
+    int[] vbo = new int[1];
+    gl.glGenBuffers(1, vbo, 0);
+    gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, vbo[0]);
+    gl.glBufferData(GL4.GL_ARRAY_BUFFER, fbParticles.limit() * 4, fbParticles, GL4.GL_DYNAMIC_DRAW);
+    gl.glEnableVertexAttribArray(0);
+    gl.glEnableVertexAttribArray(1);
+    gl.glVertexAttribPointer(0, 2, GL4.GL_FLOAT, false, 8, 0);
 
-  //shader.set("startCoords", startCoords);
-  shader.set("tex", startCoords);
-}
+    int ssbo = vbo[0];
+    gl.glBindBufferBase(GL4.GL_SHADER_STORAGE_BUFFER, 0, ssbo);    
+  }
 
-void animate(float frac) {
-  background(0);
-  
-  //shader.set("frac", frac);
-  shader.set("frac", frac);
-  shader(shader);  
-  //shape(test);
-  //endImg.drawImageCentered();
-  //image(startCoords, 0, 0);
-  
-  resetShader();
+  void update(float time) {
+    compute.begin();
+    gl.glUniform1f(compute.getUniformLocation("time"), time);
+    compute.compute(x, y, 1);
+    compute.end(); // necessary?
+    shader.begin();
+  }
+
+  void render() {
+    //updateUniform2f("hue_range", 0.34, -0.45);
+    gl.glDrawArrays(GL4.GL_POINTS, 0, numParticles);
+  }
+
+  void release() {
+    shader.dispose();
+    compute.dispose();
+  }
 }

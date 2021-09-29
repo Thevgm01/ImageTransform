@@ -1,6 +1,8 @@
 import java.util.BitSet;
 
 import com.jogamp.opengl.*;
+import com.jogamp.common.nio.Buffers;
+import java.nio.FloatBuffer;
 
 // INITIALIZATION //
 final boolean FULLSCREEN = false;
@@ -70,15 +72,23 @@ boolean frameStepping = false;
 boolean record = false;
 String recordingFilename = "frames/frame_#####";
 
+GL4 gl;
+Animator animator;
+
 void settings() {
-  if(FULLSCREEN) fullScreen(0);
+  if(FULLSCREEN) fullScreen(P2D, 0);
   else size(WIDTH, HEIGHT, P2D); 
 }
 
 void setup() {
   frameRate(DESIRED_FRAMERATE);
   //colorMode(HSB);
-    
+  
+  PGL pgl = ((PGraphicsOpenGL)g).pgl;
+  gl = ((PJOGL)pgl).gl.getGL4();
+
+  animator = new Animator(gl);
+  
   if(NUM_ANALYSIS_THREADS > MAX_THREADS) MAX_THREADS = NUM_ANALYSIS_THREADS;
   if(NUM_ANIMATION_THREADS > MAX_THREADS) MAX_THREADS = NUM_ANIMATION_THREADS;
   analysisIndexes = new int[MAX_THREADS];
@@ -92,7 +102,7 @@ void setup() {
   RGB_cube_recordedResults = new ArrayList<ArrayList<Integer>>();
   for(int i = 0; i < RGB_CUBE_TOTAL_SIZE; ++i) {
     RGB_cube.add(new ArrayList<Integer>());
-    RGB_cube_recordedResults.add(new ArrayList<Integer>());
+    RGB_cube_recordedResults.add(new ArrayList<Integer>()); // change to map<int, arraylist<integer>>?
     if(!cacheAnalysisResults)
       RGB_cube_recordedResults.get(i).add(1);
   }
@@ -103,6 +113,11 @@ void setup() {
   //endImg = nextImg;
 
   curState = State.RESET;
+}
+
+// necessary?
+void dispose() {
+  animator.release(); 
 }
 
 void mouseClicked() {
@@ -156,15 +171,16 @@ void draw() {
             println("Pixels analyzed with legacy method: " + pixelsLegacyAnalyzed.cardinality());
         }
         thread("loadNextCustomImage");
-        resetAnimator();
-        //curState = State.ANIMATION;
-        curState = State.WAIT_FOR_IMAGE;
+        animator.init(endImg);
+        curState = State.ANIMATION;
+        //curState = State.WAIT_FOR_IMAGE;
       } break;
       
     case ANIMATION: // Actively animate the transition
       if(curFrame < TOTAL_ANIMATION_FRAMES) {
-        float frac = (float)curFrame / TOTAL_ANIMATION_FRAMES;
-        animate(frac);
+        float frac = (float)curFrame / (TOTAL_ANIMATION_FRAMES - 1);
+        animator.update(frac);
+        animator.render();
         if(!frameStepping) ++curFrame; 
         if(record) saveFrame(recordingFilename);
         moveProgressBar(-progressSlideSpeed);
@@ -233,7 +249,7 @@ void resetAll() {
   curFrame = 0;
   
   resetAverage();
-  
+    
   //background(startImg);
 }
 
